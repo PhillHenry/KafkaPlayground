@@ -25,8 +25,6 @@ import scala.concurrent.duration.*
 object KafkaDemoMain extends IOApp.Simple {
 
   val TOPIC_NAME = "test_topic"
-  val BOOTSTRAP  = "kafka_bootstrap"
-  val BROKER     = "zk"
   val kafkaPort  = port"9092"
   val clusterId  = UUID.randomUUID().toString
 
@@ -36,7 +34,7 @@ object KafkaDemoMain extends IOApp.Simple {
   def run: IO[Unit] = for {
     client     <- CatsDocker.client
     kafkaStart <- Deferred[IO, String]
-    kafkaLatch  = verboseWaitFor("started (kafka.server.Kafka", kafkaStart)
+    kafkaLatch  = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
     kafka2     <- interpret(client, startKafkas(3, kafkaLatch))
     _          <- interpret(
                     client,
@@ -52,7 +50,8 @@ object KafkaDemoMain extends IOApp.Simple {
                   )
   } yield println("Started and stopped ZK and 2 kafka brokers")
 
-  def startKafkas(numBrokers: Int, kafkaLogging: String => IO[Unit]): Free[ManagerRequest, ContainerId] = {
+  def startKafkas(numBrokers: Int,
+                  kafkaLogging: String => IO[Unit]): Free[ManagerRequest, ContainerId] = {
     val meta   = for {
       brokerId <- 1 to numBrokers
       port     <- Port.fromInt(9091 + brokerId)
