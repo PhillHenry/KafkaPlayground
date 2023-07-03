@@ -1,16 +1,18 @@
 package uk.co.odinconsultants.kafka
 
+import cats.arrow.FunctionK
 import cats.effect.{Deferred, IO, IOApp}
 import cats.free.Free
 import com.comcast.ip4s.*
+import com.github.dockerjava.api.DockerClient
 import fs2.Stream
 import fs2.kafka.ProducerSettings
 import uk.co.odinconsultants.dreadnought.Flow.race
 import uk.co.odinconsultants.dreadnought.docker.*
 import uk.co.odinconsultants.dreadnought.docker.Algebra.toInterpret
-import uk.co.odinconsultants.dreadnought.docker.CatsDocker.interpret
+import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{client, interpret, interpreter}
 import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{createCustomTopic, produceMessages}
-import uk.co.odinconsultants.dreadnought.docker.Logging.verboseWaitFor
+import uk.co.odinconsultants.dreadnought.docker.Logging.{ioPrintln, verboseWaitFor}
 import uk.co.odinconsultants.dreadnought.docker.PopularContainers.startKafkaOnPort
 import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{
   startSlave,
@@ -18,6 +20,7 @@ import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{
   waitForMaster,
 }
 import uk.co.odinconsultants.dreadnought.docker.ZKKafkaMain.{kafkaEcosystem, startKafkaCluster}
+import uk.co.odinconsultants.dreadnought.docker.ContainerId
 
 import java.util.UUID
 import scala.concurrent.duration.*
@@ -35,50 +38,45 @@ object KafkaDemoMain extends IOApp.Simple {
     client     <- CatsDocker.client
     kafkaStart <- Deferred[IO, String]
     kafkaLatch  = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
-    kafka2     <- interpret(client, startKafkas(3, kafkaLatch))
-    _          <- interpret(
-                    client,
-                    Free.liftF(
-                      LoggingRequest(kafka2, kafkaLatch)
-                    ),
-                  )
+    containers <-
+      interpret(
+        client,
+        startKafkas(
+          List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
+        ),
+      )
     _          <- kafkaStart.get.timeout(20.seconds)
     _          <- IO(createCustomTopic(TOPIC_NAME))
     _          <- sendMessages
     _          <- race(toInterpret(client))(
-                    List(kafka2).map(StopRequest.apply)
+                    containers.map(StopRequest.apply)
                   )
   } yield println("Started and stopped ZK and 2 kafka brokers")
 
-  def startKafkas(numBrokers: Int,
-                  kafkaLogging: String => IO[Unit]): Free[ManagerRequest, ContainerId] = {
-    val meta   = for {
-      brokerId <- 1 to numBrokers
-      port     <- Port.fromInt(9091 + brokerId)
-    } yield (port, brokerId, s"kafka$brokerId")
-    val quorum = meta.map { case (port, brokerId, name) => s"$brokerId@$name:$port" }.mkString(",")
-    println(s"quorum = $quorum")
-    val frees: Seq[Free[ManagerRequest, ContainerId]] = meta.map { case (port, brokerId, name) =>
-      kafkaEcosystem(kafkaLogging, port, brokerId, quorum, name)
+  def startKafkas(
+      consoleColours: List[String => IO[Unit]]
+  ): Free[ManagerRequest, List[ContainerId]] = {
+    val meta = for {
+      colourBroker <- consoleColours.zipWithIndex
+      port         <- Port.fromInt(9091 + colourBroker._2)
+    } yield (port, colourBroker._2 + 1, s"kafka${colourBroker._2 + 1}", colourBroker._1)
+
+    val quorum =
+      meta.map { case (port, brokerId, name, _) => s"$brokerId@$name:$port" }.mkString(",")
+
+    val frees: Seq[Free[ManagerRequest, ContainerId]] = meta.map {
+      case (port, brokerId, name, logger) =>
+        for {
+          containerId <- Free.liftF(startKafkaOnPort(port, brokerId, quorum, name))
+          _           <- Free.liftF(
+                           LoggingRequest(containerId, logger)
+                         )
+        } yield containerId
     }
-    frees.tail.foldLeft(frees.head) { case (x, y) =>
-      x.flatMap(_ => y)
+    frees.tail.foldLeft(frees.head.map(List(_))) { case (x, y) =>
+      x.flatMap(ids => y.map(x => ids :+ x))
     }
   }
-
-  def kafkaEcosystem(
-      kafkaLogging: String => IO[Unit],
-      hostPort:     Port,
-      brokerId:     Int,
-      quorum:       String,
-      name:         String,
-  ): Free[ManagerRequest, ContainerId] =
-    for {
-      kafka1 <- Free.liftF(startKafkaOnPort(hostPort, brokerId, quorum, name))
-      _      <- Free.liftF(
-                  LoggingRequest(kafka1, kafkaLogging)
-                )
-    } yield kafka1
 
   def startKafkaOnPort(
       hostPort: Port,
