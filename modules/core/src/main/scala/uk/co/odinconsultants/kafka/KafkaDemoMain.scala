@@ -6,12 +6,23 @@ import cats.free.Free
 import com.comcast.ip4s.*
 import com.github.dockerjava.api.DockerClient
 import fs2.Stream
-import fs2.kafka.ProducerSettings
+import fs2.kafka.{AutoOffsetReset, CommittableConsumerRecord, ConsumerSettings, ProducerSettings}
 import uk.co.odinconsultants.dreadnought.Flow.race
 import uk.co.odinconsultants.dreadnought.docker.*
 import uk.co.odinconsultants.dreadnought.docker.Algebra.toInterpret
-import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{client, interpret, interpreter}
-import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{createCustomTopic, produceMessages}
+import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{
+  client,
+  interpret,
+  interpreter,
+  createNetwork,
+  removeNetwork,
+}
+import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{
+  consume,
+  createCustomTopic,
+  produce,
+  produceMessages,
+}
 import uk.co.odinconsultants.dreadnought.docker.Logging.{ioPrintln, verboseWaitFor}
 import uk.co.odinconsultants.dreadnought.docker.PopularContainers.startKafkaOnPort
 import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{
@@ -22,52 +33,66 @@ import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{
 import uk.co.odinconsultants.dreadnought.docker.ZKKafkaMain.{kafkaEcosystem, startKafkaCluster}
 import uk.co.odinconsultants.dreadnought.docker.ContainerId
 
-import java.util.UUID
+import java.util.{Base64, UUID}
 import scala.concurrent.duration.*
 
 object KafkaDemoMain extends IOApp.Simple {
 
-  val TOPIC_NAME = "test_topic"
-  val kafkaPort  = port"9092"
-  val clusterId  = UUID.randomUUID().toString
+  val TOPIC_NAME  = "test_topic"
+  val kafkaPort   = port"9093"
+  val clusterId   = Base64.getEncoder.encodeToString((1 to 16).map(_.toByte).toArray)
+  val networkName = "my_network"
 
   /** TODO
     * Pull images
     */
   def run: IO[Unit] = for {
-    client     <- CatsDocker.client
-    kafkaStart <- Deferred[IO, String]
-    kafkaLatch  = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
-    containers <-
+    client       <- CatsDocker.client
+    _            <- removeNetwork(client, networkName).handleErrorWith(x => IO.println(s"Did not delete network $networkName.\n${x.getMessage}"))
+    network      <- createNetwork(client, networkName)
+    kafkaStart   <- Deferred[IO, String]
+    kafkaLatch    = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
+    containers   <-
       interpret(
         client,
         startKafkas(
           List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
         ),
       )
-    _          <- kafkaStart.get.timeout(20.seconds)
-    _          <- IO(createCustomTopic(TOPIC_NAME))
-    _          <- sendMessages
-    _          <- race(toInterpret(client))(
-                    containers.map(StopRequest.apply)
-                  )
+    _            <- kafkaStart.get.timeout(20.seconds)
+    _            <- IO(createCustomTopic(TOPIC_NAME))
+    _            <- sendMessages
+    messageLatch <- Deferred[IO, String]
+    _            <- readMessages(messageLatch)
+    _            <- IO.println("Waiting for messages...")
+    _            <- messageLatch.get.timeout(20.seconds)
+    _            <- race(toInterpret(client))(
+                      containers.map(StopRequest.apply)
+                    )
   } yield println("Started and stopped ZK and 2 kafka brokers")
 
   def startKafkas(
       consoleColours: List[String => IO[Unit]]
   ): Free[ManagerRequest, List[ContainerId]] = {
+    def kafkaName(i: Int): String = s"kafka$i"
+
     val meta = for {
-      colourBroker <- consoleColours.zipWithIndex
-      port         <- Port.fromInt(9091 + colourBroker._2)
-    } yield (port, colourBroker._2 + 1, s"kafka${colourBroker._2 + 1}", colourBroker._1)
+      (colour, broker) <- consoleColours.zipWithIndex
+      port             <- Port.fromInt(9091 + broker)
+    } yield (port, broker + 1, kafkaName(broker + 1), colour)
 
     val quorum =
-      meta.map { case (port, brokerId, name, _) => s"$brokerId@$name:$port" }.mkString(",")
+      meta.map { case (port, brokerId, name, _) => s"$brokerId@$name:9093" }.mkString(",")
+
+    val dnsMappings =
+      List.empty // (1 to consoleColours.length).map(i => kafkaName(i) -> kafkaName(i)).toList
 
     val frees: Seq[Free[ManagerRequest, ContainerId]] = meta.map {
       case (port, brokerId, name, logger) =>
+        val startCmd: StartRequest = startKafkaOnPort(port, brokerId, quorum, name, dnsMappings)
+        println(s"startCmd = $startCmd")
         for {
-          containerId <- Free.liftF(startKafkaOnPort(port, brokerId, quorum, name))
+          containerId <- Free.liftF(startCmd)
           _           <- Free.liftF(
                            LoggingRequest(containerId, logger)
                          )
@@ -79,29 +104,27 @@ object KafkaDemoMain extends IOApp.Simple {
   }
 
   def startKafkaOnPort(
-      hostPort: Port,
-      brokerId: Int,
-      quorum:   String,
-      name:     String,
+      hostPort:    Port,
+      brokerId:    Int,
+      quorum:      String,
+      name:        String,
+      dnsMappings: DnsMapping[String],
   ): StartRequest = StartRequest(
     ImageName("docker.io/bitnami/kafka:3.5"),
-    Command("/opt/bitnami/scripts/kafka/entrypoint.sh /run.sh"),
+    Command("/opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh"),
     List(
-      "KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181",
+      "BITNAMI_DEBUG=true",
       "ALLOW_PLAINTEXT_LISTENER=yes",
-      s"KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:${hostPort.value}",
-      "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1",
-      "KAFKA_TRANSACTION_ABORT_TIMED_OUT_TRANSACTION_CLEANUP_INTERVAL_MS=60000",
-      "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1",
-      "KAFKA_AUTHORIZER_CLASS_NAME=kafka.security.authorizer.AclAuthorizer",
-      "KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND=true",
+      "KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093",
+      s"KAFKA_KRAFT_CLUSTER_ID=$clusterId",
       s"BROKER_ID=$brokerId",
-      s"CLUSTER_ID=$clusterId",
-      s"KAFKA_CONTROLLER_QUORUM_VOTERS=$quorum",
+      s"KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=$quorum",
+      s"KAFKA_CFG_NODE_ID=$brokerId",
     ),
     List(9092 -> hostPort.value),
-    List.empty,
+    dnsMappings,
     Some(name),
+    Some(networkName),
   )
 
   private val sendMessages: IO[Unit] = {
@@ -115,6 +138,24 @@ object KafkaDemoMain extends IOApp.Simple {
       .compile
       .drain
     messages
+  }
+
+  def readMessages(deferred: Deferred[IO, String]) = {
+    val consumerSettings =
+      ConsumerSettings[IO, String, String]
+        .withAutoOffsetReset(AutoOffsetReset.Earliest)
+        .withBootstrapServers(s"localhost:${kafkaPort.value + 1}")
+        .withGroupId("group_PH")
+
+    val s = for {
+      latch <- Stream.emit(deferred)
+      _     <- consume(consumerSettings, TOPIC_NAME).interruptAfter(10.seconds).evalMap {
+                 (committable: CommittableConsumerRecord[IO, String, String]) =>
+                   latch.complete(committable.record.value) *> IO.println("completed")
+               }
+    } yield ()
+
+    s.handleErrorWith(x => Stream.eval(IO(x.printStackTrace()))).compile.drain
   }
 
 }
