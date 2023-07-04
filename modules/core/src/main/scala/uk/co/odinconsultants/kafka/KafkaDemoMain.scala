@@ -55,7 +55,7 @@ object KafkaDemoMain extends IOApp.Simple {
     network      <- createNetwork(client, networkName)
     kafkaStart   <- Deferred[IO, String]
     kafkaLatch    = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
-    loggers = List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
+    loggers       = List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
     containers   <-
       interpret(
         client,
@@ -71,6 +71,7 @@ object KafkaDemoMain extends IOApp.Simple {
     _            <- readMessages(messageLatch)
     _            <- IO.println("Waiting for messages...")
     _            <- messageLatch.get.timeout(20.seconds)
+    _            <- IO.println("About to shut down...")
     _            <- race(toInterpret(client))(
                       containers.map(StopRequest.apply)
                     )
