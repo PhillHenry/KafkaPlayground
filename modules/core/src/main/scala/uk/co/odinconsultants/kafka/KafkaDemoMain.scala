@@ -38,38 +38,43 @@ import scala.concurrent.duration.*
 
 object KafkaDemoMain extends IOApp.Simple {
 
-  val TOPIC_NAME  = "test_topic"
-  val kafkaPort   = port"9093"
-  val clusterId   = Base64.getEncoder.encodeToString((1 to 16).map(_.toByte).toArray)
-  val networkName = "my_network"
+  val TOPIC_NAME     = "test_topic"
+  val kafkaPort      = port"9091"
+  val clusterId      = Base64.getEncoder.encodeToString((1 to 16).map(_.toByte).toArray)
+  val networkName    = "my_network"
+  val controllerPort = "9098"
 
   /** TODO
     * Pull images
     */
   def run: IO[Unit] = for {
     client       <- CatsDocker.client
-    _            <- removeNetwork(client, networkName).handleErrorWith(x => IO.println(s"Did not delete network $networkName.\n${x.getMessage}"))
+    _            <- removeNetwork(client, networkName).handleErrorWith(x =>
+                      IO.println(s"Did not delete network $networkName.\n${x.getMessage}")
+                    )
     network      <- createNetwork(client, networkName)
     kafkaStart   <- Deferred[IO, String]
     kafkaLatch    = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
+    loggers = List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
     containers   <-
       interpret(
         client,
-        startKafkas(
-          List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
-        ),
+        startKafkas(loggers),
       )
     _            <- kafkaStart.get.timeout(20.seconds)
+    _            <- IO.println(s"About to create topic $TOPIC_NAME")
     _            <- IO(createCustomTopic(TOPIC_NAME))
+    _            <- IO.println("About to send messages...")
     _            <- sendMessages
     messageLatch <- Deferred[IO, String]
+    _            <- IO.println("About to read messages")
     _            <- readMessages(messageLatch)
     _            <- IO.println("Waiting for messages...")
     _            <- messageLatch.get.timeout(20.seconds)
     _            <- race(toInterpret(client))(
                       containers.map(StopRequest.apply)
                     )
-  } yield println("Started and stopped ZK and 2 kafka brokers")
+  } yield println(s"Started and stopped ${loggers.length} kafka brokers")
 
   def startKafkas(
       consoleColours: List[String => IO[Unit]]
@@ -82,7 +87,9 @@ object KafkaDemoMain extends IOApp.Simple {
     } yield (port, broker + 1, kafkaName(broker + 1), colour)
 
     val quorum =
-      meta.map { case (port, brokerId, name, _) => s"$brokerId@$name:9093" }.mkString(",")
+      meta
+        .map { case (port, brokerId, name, _) => s"$brokerId@$name:$controllerPort" }
+        .mkString(",")
 
     val dnsMappings =
       List.empty // (1 to consoleColours.length).map(i => kafkaName(i) -> kafkaName(i)).toList
@@ -115,13 +122,14 @@ object KafkaDemoMain extends IOApp.Simple {
     List(
       "BITNAMI_DEBUG=true",
       "ALLOW_PLAINTEXT_LISTENER=yes",
-      "KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093",
+      s"KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:$hostPort",
+      s"KAFKA_CFG_LISTENERS=PLAINTEXT://:$hostPort,CONTROLLER://:$controllerPort",
       s"KAFKA_KRAFT_CLUSTER_ID=$clusterId",
       s"BROKER_ID=$brokerId",
       s"KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=$quorum",
       s"KAFKA_CFG_NODE_ID=$brokerId",
     ),
-    List(9092 -> hostPort.value),
+    List(hostPort.value -> hostPort.value),
     dnsMappings,
     Some(name),
     Some(networkName),
