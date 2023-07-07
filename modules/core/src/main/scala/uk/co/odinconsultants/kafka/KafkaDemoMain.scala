@@ -52,10 +52,15 @@ object KafkaDemoMain extends IOApp.Simple {
     _            <- removeNetwork(client, networkName).handleErrorWith(x =>
                       IO.println(s"Did not delete network $networkName.\n${x.getMessage}")
                     )
-    network      <- createNetwork(client, networkName)
+    _            <- createNetwork(client, networkName)
     kafkaStart   <- Deferred[IO, String]
-    kafkaLatch    = verboseWaitFor(Some(Console.BLUE))("started (kafka.server.Kafka", kafkaStart)
-    loggers       = List(kafkaLatch, ioPrintln(Some(Console.GREEN)), ioPrintln(Some(Console.YELLOW)))
+    kafkaLatch    =
+      verboseWaitFor(Some(s"${Console.BLUE}kafka1: "))("started (kafka.server.Kafka", kafkaStart)
+    loggers       = List(
+                      kafkaLatch,
+                      ioPrintln(Some(s"${Console.GREEN}kafka2: ")),
+                      ioPrintln(Some(s"${Console.YELLOW}kafka3: ")),
+                    )
     containers   <-
       interpret(
         client,
