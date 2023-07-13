@@ -9,16 +9,30 @@ class LogLine:
         self.machine = elements[0]
         self.timestamp_str = (elements[3] + " " + elements[4]).replace("[", "").replace("]", "")
         self.timestamp = datetime.strptime(self.timestamp_str, DATETIME_FORMAT)
+        self.log_level = elements[5]
+        self.payload = elements[6:]
+
+    def __str__(self):
+        return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"
 
 
-def parse_logs(filename: str) -> dict:
+def parse_logs_per_host(filename: str) -> dict:
     machine_to_logs = {}
+    log_lines = read_file(filename)
+    for log in log_lines:
+        logs = machine_to_logs.get(log.machine, [])
+        machine_to_logs[log.machine] = logs + [log]
+    return machine_to_logs
+
+
+def read_file(filename) -> [LogLine]:
+    log_lines = []
     with open(filename, 'r') as f:
         for line in f:
             try:
                 log = LogLine(line)
-                logs = machine_to_logs.get(log.machine, [])
-                machine_to_logs[log.machine] = logs + [log]
+                log_lines.append(log)
             except Exception:
                 print(f"Could not parse line:\n{line}")
-    return machine_to_logs
+    return log_lines
+

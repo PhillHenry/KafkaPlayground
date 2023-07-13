@@ -1,11 +1,13 @@
 import sys
-from kafka_log_parser import LogLine, DATETIME_FORMAT, parse_logs
-import matplotlib.pyplot as plt
+
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+
+from kafka_log_parser import DATETIME_FORMAT, parse_logs_per_host
 
 
 def do_plot(filename: str):
-    machine_to_logs = parse_logs(filename)
+    machine_to_logs = parse_logs_per_host(filename)
     fig, ax = plt.subplots(1, 1)
     colours = ['red', 'blue', 'yellow']
     for i, machine in enumerate(machine_to_logs.keys()):
