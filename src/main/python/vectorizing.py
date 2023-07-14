@@ -8,10 +8,10 @@ def to_tf_idf_vectors(raw_documents):
         ngram_range=(1, 3),
         min_df=0,
         stop_words='english')
-    return tfidf.fit_transform(raw_documents)
+    return tfidf.fit_transform(raw_documents), tfidf
 
 
-def generate_random_vectors(dim, n_vectors):
+def generate_random_vectors(dim, n_vectors) -> np.ndarray:
     """
     generate random projection vectors
     the dims comes first in the matrix's shape,
