@@ -11,6 +11,7 @@ class LogLine:
         self.timestamp = datetime.strptime(self.timestamp_str, DATETIME_FORMAT)
         self.log_level = elements[5]
         self.payload = elements[6:]
+        self.payload_str = " ".join(self.payload)
 
     def __str__(self):
         return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"
