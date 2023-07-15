@@ -7,7 +7,7 @@ def to_tf_idf_vectors(raw_documents):
         analyzer='word',
         ngram_range=(1, 3),
         min_df=0,
-        stop_words='english')
+    )
     return tfidf.fit_transform(raw_documents), tfidf
 
 

@@ -59,5 +59,5 @@ def compare(bin_indices: np.ndarray,
 
 
 if __name__ == "__main__":
-    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(sys.argv[1], 9)
+    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(sys.argv[1], 8)
     compare(bin_indices, log_lines, sys.argv[2])
