@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from kafka_log_parser import read_file, LogLine
+from rendering import human_readable
 from vectorizing import generate_random_vectors, to_tf_idf_vectors
 
 
@@ -40,7 +41,7 @@ def do_lsh(filename: str, n_vectors: int):
 def compare(bin_indices: np.ndarray,
             lines: list[LogLine],
             out_file: str):
-    lines = map(lambda x: f"{x.machine} {x.timestamp_str} {' '.join(x.payload)}", lines)
+    lines = map(human_readable, lines)
     pairs = list(zip(lines, bin_indices))
     hash_to_logs = defaultdict(list)
     for line, hash_code in pairs:
