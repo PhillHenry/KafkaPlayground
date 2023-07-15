@@ -37,14 +37,16 @@ def do_lsh(filename: str, n_vectors: int):
     return table, random_vectors, bin_indices, bin_indices_bits, log_lines
 
 
-def compare(bin_indices: np.ndarray, lines: list[LogLine]):
+def compare(bin_indices: np.ndarray,
+            lines: list[LogLine],
+            out_file: str):
     lines = map(lambda x: f"{x.machine} {x.timestamp_str} {' '.join(x.payload)}", lines)
     pairs = list(zip(lines, bin_indices))
     hash_to_logs = defaultdict(list)
     for line, hash_code in pairs:
         if line != "":
             hash_to_logs[hash_code].append(line)
-    with open("/tmp/unique.txt", "w") as file:
+    with open(out_file, "w") as file:
         for hash_code, logs in hash_to_logs.items():
             if len(logs) < 2:
                 delimiter = f"==== {hash_code} ===="
@@ -58,4 +60,4 @@ def compare(bin_indices: np.ndarray, lines: list[LogLine]):
 
 if __name__ == "__main__":
     table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(sys.argv[1], 9)
-    compare(bin_indices, log_lines)
+    compare(bin_indices, log_lines, sys.argv[2])
