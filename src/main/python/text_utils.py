@@ -18,15 +18,16 @@ def to_shingles(doc: str, ngrams: set[int], split_on=" "):
     return shingles
 
 
-def entropy_of(docs, doc_freq, shingles):
+def entropy_of(docs: [str], doc_freq: dict, shingles: set[int]):
     entropy = []
     for doc in docs:
         h = 0
         doc_words = set()
         for word in to_shingles(doc, shingles):
             if word not in doc_words:
-                p = doc_freq[word] / len(docs)
-                h += -p * math.log(p)
+                p = doc_freq.get(word, 0) / len(docs)
+                if p > 0:
+                    h += -p * math.log(p)
                 doc_words.add(word)
         entropy.append(h)
     return entropy
