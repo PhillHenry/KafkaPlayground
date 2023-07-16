@@ -22,19 +22,28 @@ def to_shingles(doc: str, ngrams: set[int], split_on=" "):
 def entropy_of(docs: [],
                doc_freq: dict,
                shingles: set[int],
-               delimiter=" ") -> [float]:
+               delimiter=" ",
+               allow_dupes=False) -> [float]:
     entropy = []
     for doc in docs:
         h = 0
         doc_words = set()
         for word in to_shingles(doc, shingles, delimiter):
-            if word not in doc_words:
+            if word not in doc_words or allow_dupes:
                 p = float(doc_freq.get(word, 0)) / len(docs)
                 if p > 0:
                     h += -p * math.log(p)
                 doc_words.add(word)
         entropy.append(h)
     return entropy
+
+
+def average_entropy_of(docs: [],
+                       doc_freq: dict,
+                       shingles: set[int],
+                       delimiter=" ") -> [float]:
+    entropies = entropy_of(docs, doc_freq, shingles, delimiter)
+    return [h / len(d) for h, d in zip(entropies, docs)]
 
 
 def frequencies(docs, shingles, delimiter=" "):

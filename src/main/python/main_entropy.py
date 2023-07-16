@@ -2,7 +2,7 @@ import sys
 
 from kafka_log_parser import read_file, LogLine
 from rendering import human_readable
-from text_utils import entropy_of, frequencies
+from text_utils import entropy_of, frequencies, average_entropy_of
 
 SHINGLES = {3, 4, 5}
 
@@ -21,9 +21,9 @@ def information(filename: str):
     words = list(frequencies(docs, {1}).keys())
     word_shingles = {2, 3, 4}
     char_freq = frequencies(words, word_shingles, None)
-    word_entropy = entropy_of(words, char_freq, word_shingles, None)
+    word_entropy = entropy_of(words, char_freq, word_shingles, None, True)
     word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
-    for word, score in word_scores[-10:]:
+    for word, score in word_scores[-20:]:
         print(f"=== {score} ===")
         print(f"{word}")
 
