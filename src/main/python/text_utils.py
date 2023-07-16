@@ -5,6 +5,7 @@ import math
 def to_shingles(doc: str, ngrams: set[int], split_on=" "):
     if split_on is None:
         tokens = doc
+        split_on = ""
     else:
         tokens = doc.split(split_on)
     words = [word for word in tokens if len(word) > 0]
@@ -13,19 +14,22 @@ def to_shingles(doc: str, ngrams: set[int], split_on=" "):
         for start in range(len(words) - ngram + 1):
             end = start + ngram
             if end <= len(words):
-                shingle = " ".join(words[start:end])
+                shingle = split_on.join(words[start:end])
                 shingles.append(shingle)
     return shingles
 
 
-def entropy_of(docs: [str], doc_freq: dict, shingles: set[int]):
+def entropy_of(docs: [],
+               doc_freq: dict,
+               shingles: set[int],
+               delimiter=" ") -> [float]:
     entropy = []
     for doc in docs:
         h = 0
         doc_words = set()
-        for word in to_shingles(doc, shingles):
+        for word in to_shingles(doc, shingles, delimiter):
             if word not in doc_words:
-                p = doc_freq.get(word, 0) / len(docs)
+                p = float(doc_freq.get(word, 0)) / len(docs)
                 if p > 0:
                     h += -p * math.log(p)
                 doc_words.add(word)
@@ -33,10 +37,10 @@ def entropy_of(docs: [str], doc_freq: dict, shingles: set[int]):
     return entropy
 
 
-def frequencies(docs, shingles):
+def frequencies(docs, shingles, delimiter=" "):
     doc_freq = defaultdict(int)
     for doc in docs:
-        words = to_shingles(doc, shingles)
+        words = to_shingles(doc, shingles, delimiter)
         for word in words:
             if len(word) > 0:
                 doc_freq[word] = doc_freq[word] + 1

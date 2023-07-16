@@ -14,14 +14,24 @@ def clean(log: LogLine) -> str:
 def information(filename: str):
     log_lines = read_file(filename)
     docs = list(map(clean, log_lines))
-    doc_freq = frequencies(docs, SHINGLES)
-    entropy = entropy_of(docs, doc_freq, SHINGLES)
-    print(f"num of entropy scores {len(entropy)}")
-    pairs = sorted(list(zip(log_lines, entropy)), key=lambda x: x[1])
-    top = pairs[-10:]
-    for line, score in top:
+
+    word_freq = frequencies(docs, SHINGLES)
+    doc_entropy = entropy_of(docs, {k: v for k, v in word_freq.items() if v < 100}, SHINGLES)
+
+    words = list(frequencies(docs, {1}).keys())
+    word_shingles = {2, 3, 4}
+    char_freq = frequencies(words, word_shingles, None)
+    word_entropy = entropy_of(words, char_freq, word_shingles, None)
+    word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
+    for word, score in word_scores[-10:]:
         print(f"=== {score} ===")
-        print(f"{human_readable(line)}")
+        print(f"{word}")
+
+    print(f"num of entropy scores {len(doc_entropy)}")
+    pairs = sorted(list(zip(log_lines, doc_entropy)), key=lambda x: x[1])
+    for word, score in pairs[-10:]:
+        print(f"=== {score} ===")
+        print(f"{human_readable(word)}")
     return pairs
 
 
