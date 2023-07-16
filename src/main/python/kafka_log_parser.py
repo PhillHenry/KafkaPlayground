@@ -26,6 +26,14 @@ def parse_logs_per_host(filename: str) -> dict:
     return machine_to_logs
 
 
+def read_plain_file(filename) -> [str]:
+    lines = []
+    with open(filename, 'r') as f:
+        for line in f:
+            lines.append(line.strip())
+    return lines
+
+
 def read_file(filename) -> [LogLine]:
     log_lines = []
     with open(filename, 'r') as f:
