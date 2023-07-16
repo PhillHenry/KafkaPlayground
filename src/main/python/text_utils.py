@@ -1,5 +1,11 @@
 from collections import defaultdict
 import math
+from re import finditer
+
+
+def camel_case_split(identifier):
+    matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
+    return [m.group(0) for m in matches]
 
 
 def to_shingles(doc: str, ngrams: set[int], split_on=" "):
@@ -41,9 +47,10 @@ def entropy_of(docs: [],
 def average_entropy_of(docs: [],
                        doc_freq: dict,
                        shingles: set[int],
-                       delimiter=" ") -> [float]:
-    entropies = entropy_of(docs, doc_freq, shingles, delimiter)
-    return [h / len(d) for h, d in zip(entropies, docs)]
+                       delimiter=" ",
+                       allow_dupes=False) -> [float]:
+    entropies = entropy_of(docs, doc_freq, shingles, delimiter, allow_dupes)
+    return [h / (len(d)) for h, d in zip(entropies, docs)]
 
 
 def frequencies(docs, shingles, delimiter=" "):
