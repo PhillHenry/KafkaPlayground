@@ -2,7 +2,7 @@ from collections import defaultdict
 import math
 
 
-def to_shingles(doc: str, ngrams={1, 2, 3, 4, 5}, split_on=" "):
+def to_shingles(doc: str, ngrams: set[int], split_on=" "):
     if split_on is None:
         tokens = doc
     else:
