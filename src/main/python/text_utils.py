@@ -2,8 +2,12 @@ from collections import defaultdict
 import math
 
 
-def to_shingles(doc: str, ngrams={1, 2, 3, 4, 5}):
-    words = [word for word in doc.split(" ") if len(word) > 0]
+def to_shingles(doc: str, ngrams={1, 2, 3, 4, 5}, split_on=" "):
+    if split_on is None:
+        tokens = doc
+    else:
+        tokens = doc.split(split_on)
+    words = [word for word in tokens if len(word) > 0]
     shingles = []
     for ngram in ngrams:
         for start in range(len(words) - ngram + 1):

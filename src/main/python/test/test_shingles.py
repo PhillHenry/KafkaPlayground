@@ -43,3 +43,8 @@ def test_2gram_3gram():
     assert set(results) == {"1 2", "2 3", "1 2 3"}
     check_invariants(results)
 
+
+def test_shingles_of_word():
+    text = "contiguous"
+    shingles = to_shingles(text, {2}, split_on=None)
+    assert len(shingles) == len(text) - 1
