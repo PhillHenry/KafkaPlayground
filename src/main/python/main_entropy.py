@@ -2,7 +2,8 @@ import sys
 
 from kafka_log_parser import read_file, LogLine, read_plain_file
 from rendering import human_readable
-from text_utils import entropy_of, frequencies, average_entropy_of, camel_case_split
+from text_utils import entropy_of, frequencies, average_entropy_of, camel_case_split, \
+    remove_pure_numbers
 import string
 
 CHAR_SHINGLES = {2, 3, }
@@ -33,7 +34,8 @@ def information(filename: str, words_file: str):
     char_freq = entropy_words(docs, english)
     doc_word_entropy = []
     for doc in docs:
-        h = average_entropy_of([doc], char_freq, CHAR_SHINGLES, None, True, penalty=1e-2)
+        cleaned = " ".join(remove_pure_numbers(doc.split(" ")))
+        h = average_entropy_of([cleaned], char_freq, CHAR_SHINGLES, None, True, penalty=1e-2)
         doc_word_entropy.append(h[0])
     print("\nDocument word entropy")
     pairs = print_sample(doc_word_entropy, log_lines)
@@ -51,7 +53,7 @@ def print_sample(entropies, log_lines):
 
 def entropy_words(docs: [str], english: [str]) -> dict:
     words = list(frequencies(docs, {1}).keys())
-    words = [w for w in words if not w.isdigit()]
+    words = remove_pure_numbers(words)
     char_freq = frequencies(english, CHAR_SHINGLES, None)
     probabilities = normalize(char_freq)
     word_entropy = entropy_of(words, probabilities, CHAR_SHINGLES, None, True, penalty=1e-2)

@@ -63,3 +63,7 @@ def frequencies(docs, shingles, delimiter=" "):
             if len(word) > 0:
                 doc_freq[word] = doc_freq[word] + 1
     return doc_freq
+
+
+def remove_pure_numbers(words):
+    return [w for w in words if not w.isdigit()]
