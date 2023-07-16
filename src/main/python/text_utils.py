@@ -29,14 +29,15 @@ def entropy_of(tokens: [],
                probabilities: dict,
                shingles: set[int],
                delimiter=" ",
-               allow_dupes=False) -> [float]:
+               allow_dupes=False,
+               penalty=0.) -> [float]:
     entropy = []
     for token in tokens:
         h = 0
         seen = set()
         for shingle in to_shingles(token, shingles, delimiter):
             if shingle not in seen or allow_dupes:
-                p = float(probabilities.get(shingle, 0))
+                p = float(probabilities.get(shingle, penalty))
                 if p > 0:
                     h += -p * math.log(p)
                 seen.add(shingle)
@@ -48,8 +49,9 @@ def average_entropy_of(docs: [],
                        doc_freq: dict,
                        shingles: set[int],
                        delimiter=" ",
-                       allow_dupes=False) -> [float]:
-    entropies = entropy_of(docs, doc_freq, shingles, delimiter, allow_dupes)
+                       allow_dupes=False,
+                       penalty=0.) -> [float]:
+    entropies = entropy_of(docs, doc_freq, shingles, delimiter, allow_dupes, penalty)
     return [h / (len(d)) for h, d in zip(entropies, docs)]
 
 
