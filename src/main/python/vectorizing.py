@@ -5,7 +5,7 @@ import numpy as np
 def to_tf_idf_vectors(raw_documents):
     tfidf = TfidfVectorizer(
         analyzer='word',
-        ngram_range=(1, 3),
+        ngram_range=(3, 5),
         min_df=0,
     )
     return tfidf.fit_transform(raw_documents), tfidf
