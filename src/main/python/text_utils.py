@@ -25,21 +25,21 @@ def to_shingles(doc: str, ngrams: set[int], split_on=" "):
     return shingles
 
 
-def entropy_of(docs: [],
-               doc_freq: dict,
+def entropy_of(tokens: [],
+               probabilities: dict,
                shingles: set[int],
                delimiter=" ",
                allow_dupes=False) -> [float]:
     entropy = []
-    for doc in docs:
+    for token in tokens:
         h = 0
-        doc_words = set()
-        for word in to_shingles(doc, shingles, delimiter):
-            if word not in doc_words or allow_dupes:
-                p = float(doc_freq.get(word, 0)) / len(docs)
+        seen = set()
+        for shingle in to_shingles(token, shingles, delimiter):
+            if shingle not in seen or allow_dupes:
+                p = float(probabilities.get(shingle, 0))
                 if p > 0:
                     h += -p * math.log(p)
-                doc_words.add(word)
+                seen.add(shingle)
         entropy.append(h)
     return entropy
 
