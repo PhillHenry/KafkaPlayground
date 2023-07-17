@@ -5,6 +5,7 @@ import numpy as np
 
 from kafka_log_parser import read_file, LogLine
 from rendering import human_readable
+from text_utils import clean
 from vectorizing import generate_random_vectors, to_tf_idf_vectors
 
 
@@ -17,7 +18,7 @@ def do_lsh(filename: str, n_vectors: int):
     """
     log_lines = read_file(filename)
     np.random.seed(0)
-    df, tfidf = to_tf_idf_vectors([f"{' '.join(x.payload)}" for x in log_lines])
+    df, tfidf = to_tf_idf_vectors(list(map(clean, log_lines)))
     vocab_size = len(tfidf.get_feature_names_out())
     random_vectors = generate_random_vectors(vocab_size, n_vectors)
     bin_indices_bits = df.dot(random_vectors) >= 0

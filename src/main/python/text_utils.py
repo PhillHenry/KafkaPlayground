@@ -1,6 +1,9 @@
+import string
 from collections import defaultdict
 import math
 from re import finditer
+
+from kafka_log_parser import LogLine
 
 
 def camel_case_split(identifier):
@@ -67,3 +70,13 @@ def frequencies(docs, shingles, delimiter=" "):
 
 def remove_pure_numbers(words):
     return [w for w in words if not w.isdigit()]
+
+
+def delimiting(x: str) -> str:
+    for delimiter in string.punctuation:
+        x = x.replace(delimiter, " ")
+    return x
+
+
+def clean(log: LogLine) -> str:
+    return delimiting(" ".join(camel_case_split(log.payload_str)).lower()).strip()

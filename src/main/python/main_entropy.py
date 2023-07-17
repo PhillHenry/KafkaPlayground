@@ -1,23 +1,11 @@
 import sys
 
-from kafka_log_parser import read_file, LogLine, read_plain_file
+from kafka_log_parser import read_file, read_plain_file
 from rendering import human_readable
-from text_utils import entropy_of, frequencies, average_entropy_of, camel_case_split, \
-    remove_pure_numbers
-import string
+from text_utils import entropy_of, frequencies, average_entropy_of, remove_pure_numbers, clean
 
 CHAR_SHINGLES = {2, 3, }
 WORD_SHINGLES = {3, 4, 5}
-
-
-def delimiting(x: str) -> str:
-    for delimiter in string.punctuation:
-        x = x.replace(delimiter, " ")
-    return x
-
-
-def clean(log: LogLine) -> str:
-    return delimiting(" ".join(camel_case_split(log.payload_str)).lower()).strip()
 
 
 def information(filename: str, words_file: str):
