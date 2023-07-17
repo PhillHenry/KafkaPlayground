@@ -27,15 +27,6 @@ def do_lsh(filename: str, n_vectors: int):
     table = defaultdict(list)
     for idx, bin_index in enumerate(bin_indices):
         table[bin_index].append(idx)
-
-    # note that we're storing the bin_indices here
-    # so we can do some ad-hoc checking with it,
-    # this isn't actually required
-    model = {'table': table,
-             'random_vectors': random_vectors,
-             'bin_indices': bin_indices,
-             'bin_indices_bits': bin_indices_bits,
-             'lines': log_lines}
     return table, random_vectors, bin_indices, bin_indices_bits, log_lines
 
 
