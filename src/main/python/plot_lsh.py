@@ -12,23 +12,24 @@ def do_plot(log_index: []):
     plot_timeseries(log_index, "kafka3:", "red")
     plot_timeseries(log_index, "kafka2:", "cyan")
     plot_timeseries(log_index, "kafka1:", "green")
+    plt.legend()
 
 
 def plot_timeseries(log_index: [], machine: str, colour: str):
     timestamps = [l.timestamp for l, i in log_index if l.machine == machine]
     indices = [i for l, i in log_index if l.machine == machine]
-    plt.scatter(timestamps, indices, s=1, c=colour)
+    plt.scatter(timestamps, indices, s=1, c=colour, label=machine)
 
 
 def timeseries(input_file: str):
     table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(input_file, 8)
-    do_plot(list(zip(log_lines, bin_indices))[0:2900])
+    do_plot(list(zip(log_lines, bin_indices)))
 
 
 if __name__ == "__main__":
     filename = sys.argv[1]
     timeseries(filename)
-    file = filename[filename.rfind("/"):]
+    file = filename[filename.rfind("/")+1:]
     print(f"Saving {file}")
-    plt.savefig(f"/tmp/{file}.pdf")
+    plt.savefig(f"/tmp/all_{file}.pdf")
     plt.show()
