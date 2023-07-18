@@ -2,14 +2,37 @@ import sys
 from collections import defaultdict
 
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 
-from kafka_log_parser import read_file
+from kafka_log_parser import read_file, LogLine
 from text_utils import clean, \
-    frequencies, to_shingles, lsh_bin
+    frequencies, to_shingles, lsh_bin_logs
 from vectorizing import generate_random_vectors, lsh_projection
 
 WORD_SHINGLES = {2,3}
+
+
+def to_log_index_tuples(x: dict) -> []:
+    log_bin = []
+    for k in x.keys():
+        for log in x[k]:
+            log_bin.append((log, k))
+    return log_bin
+
+
+def log_to_index(index_to_log: dict) -> dict:
+    log_index = {}
+    for index in index_to_log.keys():
+        for log in index_to_log[index]:
+            log_index[log] = index
+    return log_index
+
+
+def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str):
+    logs = logs[:1000]
+    ys = [log_index[log] for log in logs]
+    plt.scatter(range(len(logs)), ys, s=1, c=colour, label=machine)
 
 
 def information(first: str, second: str):
@@ -27,11 +50,28 @@ def information(first: str, second: str):
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
 
-    df = tf_idf(first_docs, word_indices, first_word_count)
     random_vectors = generate_random_vectors(len(words), 8)
+    first_hash_to_logs = make_lsh_bins(first_docs, first_lines, first_word_count, random_vectors,
+                                       word_indices)
+    second_hash_to_logs = make_lsh_bins(second_docs, second_lines, second_word_count, random_vectors,
+                                        word_indices)
+    fig, ax = plt.subplots(1, 1)
+    fig = plt.figure(figsize=(16,6))
+    plot_line(log_to_index(first_hash_to_logs), first_lines, "kafka1:", "red")
+    plot_line(log_to_index(second_hash_to_logs), second_lines, "kafka1:", "blue")
+    plt.show()
+
+
+def make_lsh_bins(docs: [LogLine],
+                  lines: [str],
+                  first_word_count: dict,
+                  random_vectors: np.ndarray,
+                  word_indices: dict) -> dict:
+    df = tf_idf(docs, word_indices, first_word_count)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
-    hash_to_logs = lsh_bin(bin_indices, first_lines)
+    hash_to_logs = lsh_bin_logs(bin_indices, lines)
     print_bins(hash_to_logs)
+    return hash_to_logs
 
 
 def print_bins(hash_to_logs):
@@ -41,7 +81,7 @@ def print_bins(hash_to_logs):
         print(delimiter)
         if len(logs) > 5:
             for log in logs[:5]:
-                line = f"{log.strip()}"
+                line = f"{log}"
                 print(line)
 
 

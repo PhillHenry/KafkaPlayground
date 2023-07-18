@@ -138,9 +138,13 @@ def highest_entropy_words(docs: [str], char_freq: dict, shingles: set, penalty: 
     return top
 
 
-def lsh_bin(bin_indices: np.ndarray,
-            lines: list[LogLine]) -> dict:
+def lsh_bin_lines(bin_indices: np.ndarray,
+                  lines: list[LogLine]) -> dict:
     lines = map(human_readable, lines)
+    return lsh_bin_logs(bin_indices, lines)
+
+
+def lsh_bin_logs(bin_indices: np.ndarray, lines: []) -> dict:
     pairs = list(zip(lines, bin_indices))
     hash_to_logs = defaultdict(list)
     for line, hash_code in pairs:

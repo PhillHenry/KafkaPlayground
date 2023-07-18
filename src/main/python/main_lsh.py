@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from kafka_log_parser import read_file, LogLine
-from text_utils import clean, lsh_bin
+from text_utils import clean, lsh_bin_lines
 from vectorizing import generate_random_vectors, to_tf_idf_vectors, lsh_projection
 
 
@@ -30,7 +30,7 @@ def do_lsh(filename: str, n_vectors: int):
 def compare(bin_indices: np.ndarray,
             lines: list[LogLine],
             out_file: str):
-    hash_to_logs = lsh_bin(bin_indices, lines)
+    hash_to_logs = lsh_bin_lines(bin_indices, lines)
     with open(out_file, "w") as file:
         for hash_code, logs in hash_to_logs.items():
             if len(logs) < 2:
