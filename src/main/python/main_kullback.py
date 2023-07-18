@@ -26,7 +26,11 @@ def information(words_file: str, first: str, second: str):
     kl = kullback_liebler(first_docs, first_top_word_scores, ps, qs)
     docs_to_kl = list(set(zip(first_docs, kl)))
     sorted_kl = sorted(docs_to_kl, key=lambda x: x[1])
-    for doc, kl in sorted_kl[:-20]:
+    print("Lowest 20")
+    for doc, kl in sorted_kl[:20]:
+        print(f"{kl} {doc}")
+    print("Top 20")
+    for doc, kl in sorted_kl[-20:]:
         print(f"{kl} {doc}")
 
 
@@ -43,4 +47,4 @@ def most_entropic(docs: [str], char_freq: dict) -> [str]:
 
 
 if __name__ == "__main__":
-    pairs = information(sys.argv[1], sys.argv[2], sys.argv[3])
+    information(sys.argv[1], sys.argv[2], sys.argv[3])
