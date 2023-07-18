@@ -1,14 +1,12 @@
 import sys
-from collections import defaultdict
 
-import math
 import matplotlib.pyplot as plt
 import numpy as np
 
 from kafka_log_parser import read_file, LogLine, read_plain_file
 from text_utils import clean, \
-    frequencies, to_shingles, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
-from vectorizing import generate_random_vectors, lsh_projection
+    frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
+from vectorizing import generate_random_vectors, lsh_projection, tf_idf
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -77,8 +75,8 @@ def make_lsh_bins(docs: [LogLine],
                   word_indices: dict,
                   char_freq: dict) -> dict:
     ignore_words = words_to_ignore_in(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
-    df = tf_idf(docs, word_indices, first_word_count, ignore_words)
-    # df = one_hot(docs, word_indices, ignore_words)
+    df = tf_idf(docs, word_indices, first_word_count, ignore_words, WORD_SHINGLES)
+    # df = one_hot(docs, word_indices, ignore_words, WORD_SHINGLES)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     hash_to_logs = lsh_bin_logs(bin_indices, lines)
     print_bins(hash_to_logs)
@@ -94,43 +92,6 @@ def print_bins(hash_to_logs):
             for log in logs[:5]:
                 line = f"{log}"
                 print(line)
-
-
-def one_hot(docs: [str], word_indices: dict, ignore_words: [str]):
-    n = len(docs)
-    m = np.zeros([n, len(word_indices)], float)
-    for i, doc in enumerate(docs):
-        for word in to_shingles(doc, WORD_SHINGLES):
-            is_valid = True
-            for ignoring in ignore_words:
-                if ignoring in word:
-                    is_valid = False
-            if word in word_indices.keys() and is_valid:
-                index = word_indices[word]
-                m[i, index] = 1.
-    return m
-
-
-def tf_idf(docs: [str], word_indices: dict, word_count: dict, ignore_words: [str]):
-    n = len(docs)
-    m = np.zeros([n, len(word_indices)], float)
-    for i, doc in enumerate(docs):
-        doc_word_count = defaultdict(int)
-        for word in to_shingles(doc, WORD_SHINGLES):
-            is_valid = True
-            for ignoring in ignore_words:
-                if ignoring in word:
-                    is_valid = False
-            if is_valid:
-                doc_word_count[word] = doc_word_count[word] + 1
-        for word, is_valid in doc_word_count.items():
-            d = word_count[word]
-            f = doc_word_count[word]
-            if word in word_indices.keys():
-                index = word_indices[word]
-                m[i, index] = f * math.log(n / d)
-    return m
-
 
 if __name__ == "__main__":
     information(sys.argv[1], sys.argv[2], sys.argv[3])
