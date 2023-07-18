@@ -98,14 +98,20 @@ def remove_timings(words: [str]):
     return words
 
 
-def word_shingle_probabilities_from(docs, english, char_shingles):
-    words = list(frequencies(docs, {1}).keys())
-    char_freq = frequencies(english, char_shingles, None)
+def word_shingle_probabilities_from(words: [str], char_shingles: set) -> dict:
+    char_freq = frequencies(words, char_shingles, None)
     probabilities = normalize(char_freq)
-    return probabilities, words
+    return probabilities
 
 
 def normalize(token_freq: dict):
     n = sum([v for v in token_freq.values()])
     probabilities = {k: v / n for k, v in token_freq.items()}
     return probabilities
+
+
+def sorted_word_entropy(docs: [str], probabilities: dict, shingles: set, penalty: float) -> dict:
+    words = list(frequencies(docs, {1}).keys())
+    word_entropy = entropy_of(words, probabilities, shingles, None, True, penalty=penalty)
+    word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
+    return word_scores

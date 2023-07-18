@@ -3,7 +3,7 @@ import sys
 from kafka_log_parser import read_file, read_plain_file
 from rendering import human_readable
 from text_utils import entropy_of, frequencies, average_entropy_of, clean, \
-    clean_line, word_shingle_probabilities_from, normalize
+    clean_line, word_shingle_probabilities_from, normalize, sorted_word_entropy
 
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
@@ -18,7 +18,8 @@ def information(filename: str, words_file: str):
 
     english = read_plain_file(words_file)
     print(f"number of English words is {len(english)}")
-    char_freq = word_shingle_probabilities(docs, english)
+    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
+    print_most_entropic_words(docs, english, char_freq)
     doc_word_entropy = []
     for doc in docs:
         h = average_entropy_of([doc], char_freq, CHAR_SHINGLES, None, True, penalty=WORD_PENALTY)
@@ -44,14 +45,11 @@ def print_sample(entropies, log_lines):
     return pairs
 
 
-def word_shingle_probabilities(docs: [str], english: [str]) -> dict:
-    probabilities, words = word_shingle_probabilities_from(docs, english, CHAR_SHINGLES)
-    word_entropy = entropy_of(words, probabilities, CHAR_SHINGLES, None, True, penalty=WORD_PENALTY)
-    word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
+def print_most_entropic_words(docs: [str], english: [str], probabilities: dict) -> dict:
+    word_scores = sorted_word_entropy(docs, probabilities, CHAR_SHINGLES, WORD_PENALTY)
     for word, score in [x for x in word_scores if x[0] not in english][-40:]:
         print(f"=== {score} ===")
         print(f"{word}")
-    return probabilities
 
 
 def ignoring_common(word_freq: dict, limit: int):
