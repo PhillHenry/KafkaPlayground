@@ -1,4 +1,4 @@
-from text_utils import frequencies, camel_case_split, remove_timings
+from text_utils import frequencies, camel_case_split, remove_timings, clean_line
 
 
 def test_frequency_of_chars():
@@ -31,6 +31,13 @@ def test_no_camel_case():
 
 def test_camel_case():
     assert set(camel_case_split("transactionId")) == {"transaction", "Id"}
+
+
+def test_clean():
+    number = "1688480059114"
+    text = f"kafka1: onNext: RAW: [2023-07-04 14:14:19,116] INFO [RaftManager id=1] High watermark set to LogOffsetMetadata(offset=3, metadata=Optional[(segmentBaseOffset=0,relativePositionInSegment=209)]) for the first time for epoch 1 based on indexOfHw 1 and voters [ReplicaState(nodeId=1, endOffset=Optional[LogOffsetMetadata(offset=5, metadata=Optional[(segmentBaseOffset=0,relativePositionInSegment=519)])], lastFetchTimestamp=-1, lastCaughtUpTimestamp=-1, hasAcknowledgedLeader=true), ReplicaState(nodeId=2, endOffset=Optional[LogOffsetMetadata(offset=3, metadata=Optional[(segmentBaseOffset=0,relativePositionInSegment=209)])], lastFetchTimestamp={number}, lastCaughtUpTimestamp=1688480059043, hasAcknowledgedLeader=true), ReplicaState(nodeId=3, endOffset=Optional[LogOffsetMetadata(offset=0, metadata=Optional[(segmentBaseOffset=0,relativePositionInSegment=0)])], lastFetchTimestamp=1688480059066, lastCaughtUpTimestamp=-1, hasAcknowledgedLeader=true)] (org.apache.kafka.raft.LeaderState)"
+    cleaned = clean_line(text)
+    assert number not in cleaned
 
 
 def _test_camel_case_split_does_not_split_uuids():

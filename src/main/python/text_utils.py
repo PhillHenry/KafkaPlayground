@@ -70,7 +70,7 @@ def frequencies(docs, shingles, delimiter=" "):
 
 
 def remove_pure_numbers(words):
-    return [w for w in words if not w.isdigit()]
+    return [w for w in words if not w.strip().isdigit()]
 
 
 def delimiting(x: str) -> str:
@@ -85,10 +85,11 @@ def clean(log: LogLine) -> str:
 
 def clean_line(line: str) -> str:
     camel_expanded = [w.strip().lower() for w in camel_case_split(line)]
-    words = " ".join(camel_expanded).split(" ")
+    no_delimiters = delimiting(" ".join(camel_expanded))
+    words = no_delimiters.split(" ")
     words = remove_timings(words)
     words = remove_pure_numbers(words)
-    return delimiting(" ".join(words)).strip()
+    return " ".join(words).strip()
 
 
 def remove_timings(words: [str]):

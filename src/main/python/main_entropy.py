@@ -5,6 +5,7 @@ from rendering import human_readable
 from text_utils import entropy_of, frequencies, average_entropy_of, clean, \
     clean_line, word_shingle_probabilities_from, normalize
 
+WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
 WORD_SHINGLES = {3, 4, 5}
 
@@ -20,8 +21,7 @@ def information(filename: str, words_file: str):
     char_freq = word_shingle_probabilities(docs, english)
     doc_word_entropy = []
     for doc in docs:
-        x = clean_line(doc)
-        h = average_entropy_of([x], char_freq, CHAR_SHINGLES, None, True, penalty=1e-2)
+        h = average_entropy_of([doc], char_freq, CHAR_SHINGLES, None, True, penalty=WORD_PENALTY)
         doc_word_entropy.append(h[0])
     print("\nAverage document word entropy")
     pairs = print_sample(doc_word_entropy, log_lines)
@@ -46,7 +46,7 @@ def print_sample(entropies, log_lines):
 
 def word_shingle_probabilities(docs: [str], english: [str]) -> dict:
     probabilities, words = word_shingle_probabilities_from(docs, english, CHAR_SHINGLES)
-    word_entropy = entropy_of(words, probabilities, CHAR_SHINGLES, None, True, penalty=1e-2)
+    word_entropy = entropy_of(words, probabilities, CHAR_SHINGLES, None, True, penalty=WORD_PENALTY)
     word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
     for word, score in [x for x in word_scores if x[0] not in english][-40:]:
         print(f"=== {score} ===")
