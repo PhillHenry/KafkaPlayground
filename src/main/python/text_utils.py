@@ -128,3 +128,10 @@ def kullback_liebler(docs: [str], ignore_words: [str], ps: dict, qs: dict) -> di
                 h += p * math.log(p / q)
         kl.append(h)
     return kl
+
+
+def highest_entropy_words(docs: [str], char_freq: dict, shingles: set, penalty: float) -> [str]:
+    word_score = sorted_word_average_entropy(docs, char_freq, shingles, penalty)
+    max_score = word_score[-1][1]
+    top = [w for w, s in word_score if s > max_score / 2]
+    return top
