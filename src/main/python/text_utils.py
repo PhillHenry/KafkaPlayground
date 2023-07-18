@@ -98,8 +98,8 @@ def remove_timings(words: [str]):
     return words
 
 
-def word_shingle_probabilities_from(words: [str], char_shingles: set) -> dict:
-    char_freq = frequencies(words, char_shingles, None)
+def word_shingle_probabilities_from(words: [str], shingles: set) -> dict:
+    char_freq = frequencies(words, shingles, None)
     probabilities = normalize(char_freq)
     return probabilities
 
@@ -110,8 +110,21 @@ def normalize(token_freq: dict):
     return probabilities
 
 
-def sorted_word_average_entropy(docs: [str], probabilities: dict, shingles: set, penalty: float) -> dict:
+def sorted_word_average_entropy(docs: [str], probabilities: dict, shingles: set, penalty: float) -> list:
     words = list(frequencies(docs, {1}).keys())
     word_entropy = average_entropy_of(words, probabilities, shingles, None, True, penalty=penalty)
     word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
     return word_scores
+
+
+def kullback_liebler(docs: [str], ignore_words: [str], ps: dict, qs: dict) -> dict:
+    kl = []
+    for doc in docs:
+        h = 0
+        for word in [w for w in doc.split(" ") if w not in ignore_words]:
+            if word in qs.keys():
+                p = ps[word]
+                q = qs[word]
+                h += p * math.log(p / q)
+        kl.append(h)
+    return kl

@@ -3,7 +3,7 @@ import sys
 from kafka_log_parser import read_file, read_plain_file
 from rendering import human_readable
 from text_utils import entropy_of, frequencies, average_entropy_of, clean, \
-    clean_line, word_shingle_probabilities_from, normalize, sorted_word_average_entropy
+    word_shingle_probabilities_from, normalize, sorted_word_average_entropy
 
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
@@ -45,7 +45,7 @@ def print_sample(entropies, log_lines):
     return pairs
 
 
-def print_most_entropic_words(docs: [str], english: [str], probabilities: dict) -> dict:
+def print_most_entropic_words(docs: [str], english: [str], probabilities: dict):
     word_scores = sorted_word_average_entropy(docs, probabilities, CHAR_SHINGLES, WORD_PENALTY)
     for word, score in [x for x in word_scores if x[0] not in english and len(x[0]) > 3][-40:]:
         print(f"=== {score} ===")
