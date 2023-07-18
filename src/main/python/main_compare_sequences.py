@@ -6,7 +6,7 @@ import numpy as np
 from kafka_log_parser import read_file, LogLine, read_plain_file
 from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
-from vectorizing import generate_random_vectors, lsh_projection, tf_idf
+from vectorizing import generate_random_vectors, lsh_projection, tf_idf, one_hot
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -29,10 +29,10 @@ def log_to_index(index_to_log: dict) -> dict:
     return log_index
 
 
-def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str):
+def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label: str):
     logs = logs[:1000]
     ys = [log_index[log] for log in logs]
-    plt.scatter(range(len(logs)), ys, s=1, c=colour, label=machine)
+    plt.scatter(range(len(logs)), ys, s=1, c=colour, label=f"{machine} {label}")
 
 
 def information(words_file: str, first: str, second: str):
@@ -62,9 +62,10 @@ def information(words_file: str, first: str, second: str):
     fig, ax = plt.subplots(1, 1)
     fig = plt.figure(figsize=(16,6))
     machine = "kafka1:"
-    plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red")
-    plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue")
-    plt.savefig(f"/tmp/compare_{machine}.pdf")
+    plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red", "first run")
+    plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue", "second run")
+    plt.legend()
+    plt.savefig(f"/tmp/one_hot_{machine}.pdf")
     plt.show()
 
 
@@ -75,8 +76,8 @@ def make_lsh_bins(docs: [LogLine],
                   word_indices: dict,
                   char_freq: dict) -> dict:
     ignore_words = words_to_ignore_in(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
-    df = tf_idf(docs, word_indices, first_word_count, ignore_words, WORD_SHINGLES)
-    # df = one_hot(docs, word_indices, ignore_words, WORD_SHINGLES)
+    # df = tf_idf(docs, word_indices, first_word_count, ignore_words, WORD_SHINGLES)
+    df = one_hot(docs, word_indices, ignore_words, WORD_SHINGLES)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     hash_to_logs = lsh_bin_logs(bin_indices, lines)
     print_bins(hash_to_logs)
