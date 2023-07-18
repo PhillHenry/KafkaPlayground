@@ -110,8 +110,8 @@ def normalize(token_freq: dict):
     return probabilities
 
 
-def sorted_word_entropy(docs: [str], probabilities: dict, shingles: set, penalty: float) -> dict:
+def sorted_word_average_entropy(docs: [str], probabilities: dict, shingles: set, penalty: float) -> dict:
     words = list(frequencies(docs, {1}).keys())
-    word_entropy = entropy_of(words, probabilities, shingles, None, True, penalty=penalty)
+    word_entropy = average_entropy_of(words, probabilities, shingles, None, True, penalty=penalty)
     word_scores = sorted(zip(words, word_entropy), key=lambda x: x[1])
     return word_scores
