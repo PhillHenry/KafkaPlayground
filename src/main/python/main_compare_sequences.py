@@ -5,12 +5,14 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-from kafka_log_parser import read_file, LogLine
+from kafka_log_parser import read_file, LogLine, read_plain_file
 from text_utils import clean, \
-    frequencies, to_shingles, lsh_bin_logs
+    frequencies, to_shingles, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
 from vectorizing import generate_random_vectors, lsh_projection
 
 WORD_SHINGLES = {2,3}
+WORD_PENALTY = 1e-2
+CHAR_SHINGLES = {2, 3, }
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -35,7 +37,10 @@ def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str):
     plt.scatter(range(len(logs)), ys, s=1, c=colour, label=machine)
 
 
-def information(first: str, second: str):
+def information(words_file: str, first: str, second: str):
+    english = read_plain_file(words_file)
+    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
+
     first_lines = read_file(first)
     first_docs = list(map(clean, first_lines))
     second_lines = read_file(second)
@@ -52,13 +57,15 @@ def information(first: str, second: str):
 
     random_vectors = generate_random_vectors(len(words), 8)
     first_hash_to_logs = make_lsh_bins(first_docs, first_lines, first_word_count, random_vectors,
-                                       word_indices)
+                                       word_indices, char_freq)
     second_hash_to_logs = make_lsh_bins(second_docs, second_lines, second_word_count, random_vectors,
-                                        word_indices)
+                                        word_indices, char_freq)
     fig, ax = plt.subplots(1, 1)
     fig = plt.figure(figsize=(16,6))
-    plot_line(log_to_index(first_hash_to_logs), first_lines, "kafka1:", "red")
-    plot_line(log_to_index(second_hash_to_logs), second_lines, "kafka1:", "blue")
+    machine = "kafka1:"
+    plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red")
+    plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue")
+    plt.savefig(f"/tmp/compare_{machine}.pdf")
     plt.show()
 
 
@@ -66,8 +73,10 @@ def make_lsh_bins(docs: [LogLine],
                   lines: [str],
                   first_word_count: dict,
                   random_vectors: np.ndarray,
-                  word_indices: dict) -> dict:
-    df = tf_idf(docs, word_indices, first_word_count)
+                  word_indices: dict,
+                  char_freq: dict) -> dict:
+    ignore_words = words_to_ignore_in(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+    df = tf_idf(docs, word_indices, first_word_count, ignore_words)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     hash_to_logs = lsh_bin_logs(bin_indices, lines)
     print_bins(hash_to_logs)
@@ -85,21 +94,25 @@ def print_bins(hash_to_logs):
                 print(line)
 
 
-def tf_idf(docs: [str], word_indices: dict, word_count: dict):
+def tf_idf(docs: [str], word_indices: dict, word_count: dict, ignore_words: [str]):
     n = len(docs)
     m = np.zeros([n, len(word_indices)], float)
     for i, doc in enumerate(docs):
         doc_word_count = defaultdict(int)
         for word in to_shingles(doc, WORD_SHINGLES):
-            doc_word_count[word] = doc_word_count[word] + 1
+            count = True
+            for ignoring in ignore_words:
+                if ignoring in word:
+                    count = False
+            if count:
+                doc_word_count[word] = doc_word_count[word] + 1
         for word, count in doc_word_count.items():
             d = word_count[word]
             f = doc_word_count[word]
             index = word_indices[word]
             m[i, index] = f * math.log(n / d)
-        # print(f"{len(doc_word_count)}: {doc}")
     return m
 
 
 if __name__ == "__main__":
-    information(sys.argv[1], sys.argv[2])
+    information(sys.argv[1], sys.argv[2], sys.argv[3])

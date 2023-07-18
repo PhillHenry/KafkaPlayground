@@ -3,7 +3,7 @@ import sys
 from kafka_log_parser import read_file, read_plain_file
 from text_utils import clean, \
     word_shingle_probabilities_from, frequencies, normalize, \
-    kullback_liebler, highest_entropy_words
+    kullback_liebler, words_to_ignore_in
 
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
@@ -21,8 +21,8 @@ def information(words_file: str, first: str, second: str):
     ps = word_probabilities(first_docs)
     qs = word_probabilities(second_docs)
 
-    first_top_word_scores = words_to_ignore_in(first_docs, char_freq)
-    second_top_word_scores = words_to_ignore_in(second_docs, char_freq)
+    first_top_word_scores = words_to_ignore_in(first_docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+    second_top_word_scores = words_to_ignore_in(second_docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
 
     kl = kullback_liebler(first_docs, first_top_word_scores, ps, qs)
     print_outliers_in(first_docs, kl)
@@ -46,14 +46,6 @@ def word_probabilities(docs: [str]):
     word_count = frequencies(docs, {1})
     probabilities = normalize(word_count)
     return probabilities
-
-
-def words_to_ignore_in(docs: [str], char_freq: dict) -> [str]:
-    top = highest_entropy_words(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
-    print("Ignoring:")
-    for w in top:
-        print(f"\t{w}")
-    return top
 
 
 if __name__ == "__main__":
