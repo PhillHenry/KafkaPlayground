@@ -21,3 +21,8 @@ def generate_random_vectors(dim, n_vectors) -> np.ndarray:
     return np.random.randn(dim, n_vectors)
 
 
+def lsh_projection(df, random_vectors:  np.ndarray):
+    bin_indices_bits = df.dot(random_vectors) >= 0
+    powers_of_two = 1 << np.arange(random_vectors.shape[1] - 1, -1, step=-1)
+    bin_indices = bin_indices_bits.dot(powers_of_two)
+    return bin_indices, bin_indices_bits

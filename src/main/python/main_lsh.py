@@ -4,9 +4,8 @@ from collections import defaultdict
 import numpy as np
 
 from kafka_log_parser import read_file, LogLine
-from rendering import human_readable
-from text_utils import clean
-from vectorizing import generate_random_vectors, to_tf_idf_vectors
+from text_utils import clean, lsh_bin
+from vectorizing import generate_random_vectors, to_tf_idf_vectors, lsh_projection
 
 
 def do_lsh(filename: str, n_vectors: int):
@@ -21,9 +20,7 @@ def do_lsh(filename: str, n_vectors: int):
     df, tfidf = to_tf_idf_vectors(list(map(clean, log_lines)))
     vocab_size = len(tfidf.get_feature_names_out())
     random_vectors = generate_random_vectors(vocab_size, n_vectors)
-    bin_indices_bits = df.dot(random_vectors) >= 0
-    powers_of_two = 1 << np.arange(random_vectors.shape[1] - 1, -1, step=-1)
-    bin_indices = bin_indices_bits.dot(powers_of_two)
+    bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     table = defaultdict(list)
     for idx, bin_index in enumerate(bin_indices):
         table[bin_index].append(idx)
@@ -33,12 +30,7 @@ def do_lsh(filename: str, n_vectors: int):
 def compare(bin_indices: np.ndarray,
             lines: list[LogLine],
             out_file: str):
-    lines = map(human_readable, lines)
-    pairs = list(zip(lines, bin_indices))
-    hash_to_logs = defaultdict(list)
-    for line, hash_code in pairs:
-        if line != "":
-            hash_to_logs[hash_code].append(line)
+    hash_to_logs = lsh_bin(bin_indices, lines)
     with open(out_file, "w") as file:
         for hash_code, logs in hash_to_logs.items():
             if len(logs) < 2:

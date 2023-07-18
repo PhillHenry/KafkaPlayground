@@ -3,8 +3,9 @@ from collections import defaultdict
 import math
 from re import finditer
 import re
-
+import numpy as np
 from kafka_log_parser import LogLine
+from rendering import human_readable
 
 
 def camel_case_split(identifier: str) -> [str]:
@@ -135,3 +136,14 @@ def highest_entropy_words(docs: [str], char_freq: dict, shingles: set, penalty: 
     max_score = word_score[-1][1]
     top = [w for w, s in word_score if s > max_score / 2]
     return top
+
+
+def lsh_bin(bin_indices: np.ndarray,
+            lines: list[LogLine]) -> dict:
+    lines = map(human_readable, lines)
+    pairs = list(zip(lines, bin_indices))
+    hash_to_logs = defaultdict(list)
+    for line, hash_code in pairs:
+        if line != "":
+            hash_to_logs[hash_code].append(line)
+    return hash_to_logs
