@@ -2,11 +2,12 @@ import string
 from collections import defaultdict
 import math
 from re import finditer
+import re
 
 from kafka_log_parser import LogLine
 
 
-def camel_case_split(identifier):
+def camel_case_split(identifier: str) -> [str]:
     matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
     return [m.group(0) for m in matches]
 
@@ -79,4 +80,18 @@ def delimiting(x: str) -> str:
 
 
 def clean(log: LogLine) -> str:
-    return delimiting(" ".join(camel_case_split(log.payload_str)).lower()).strip()
+    return clean_line(log.payload_str)
+
+
+def clean_line(line: str) -> str:
+    camel_expanded = [w.strip().lower() for w in camel_case_split(line)]
+    words = " ".join(camel_expanded).split(" ")
+    words = remove_timings(words)
+    words = remove_pure_numbers(words)
+    return delimiting(" ".join(words)).strip()
+
+
+def remove_timings(words: [str]):
+    p = re.compile('\d+ms')
+    words = [w for w in words if not p.match(w)]
+    return words
