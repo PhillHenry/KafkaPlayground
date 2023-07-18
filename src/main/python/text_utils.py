@@ -95,3 +95,16 @@ def remove_timings(words: [str]):
     p = re.compile('\d+ms')
     words = [w for w in words if not p.match(w)]
     return words
+
+
+def word_shingle_probabilities_from(docs, english, char_shingles):
+    words = list(frequencies(docs, {1}).keys())
+    char_freq = frequencies(english, char_shingles, None)
+    probabilities = normalize(char_freq)
+    return probabilities, words
+
+
+def normalize(token_freq: dict):
+    n = sum([v for v in token_freq.values()])
+    probabilities = {k: v / n for k, v in token_freq.items()}
+    return probabilities
