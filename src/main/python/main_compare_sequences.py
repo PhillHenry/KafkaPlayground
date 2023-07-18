@@ -51,7 +51,8 @@ def information(words_file: str, first: str, second: str):
     second_word_count = frequencies(second_docs, WORD_SHINGLES)
     print(f"top words: {[w for w, c in sorted(first_word_count.items(), key=lambda x: -x[1])][:10]}")
 
-    words = {w for w in list(first_word_count.keys()) + list(second_word_count.keys())}
+    all_words = set(list(first_word_count.keys()) + list(second_word_count.keys()))
+    words = {w for w in all_words if w in first_word_count.keys() and w in second_word_count.keys()}
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
 
@@ -109,8 +110,9 @@ def tf_idf(docs: [str], word_indices: dict, word_count: dict, ignore_words: [str
         for word, count in doc_word_count.items():
             d = word_count[word]
             f = doc_word_count[word]
-            index = word_indices[word]
-            m[i, index] = f * math.log(n / d)
+            if word in word_indices.keys():
+                index = word_indices[word]
+                m[i, index] = f * math.log(n / d)
     return m
 
 
