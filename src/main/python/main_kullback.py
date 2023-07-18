@@ -12,9 +12,9 @@ WORD_SHINGLES = {3, 4, 5}
 
 def information(words_file: str, first: str, second: str):
     first_lines = read_file(first)
-    first_docs = list(map(clean, first_lines))
+    first_docs = list(set(map(clean, first_lines)))
     second_lines = read_file(second)
-    second_docs = list(map(clean, second_lines))
+    second_docs = list(set(map(clean, second_lines)))
     english = read_plain_file(words_file)
     char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
 
@@ -22,8 +22,16 @@ def information(words_file: str, first: str, second: str):
     qs = word_probabilities(second_docs)
 
     first_top_word_scores = most_entropic(first_docs, char_freq)
+    second_top_word_scores = most_entropic(second_docs, char_freq)
 
     kl = kullback_liebler(first_docs, first_top_word_scores, ps, qs)
+    print_outliers_in(first_docs, kl)
+
+    kl = kullback_liebler(second_docs, second_top_word_scores, qs, ps)
+    print_outliers_in(second_docs, kl)
+
+
+def print_outliers_in(first_docs, kl):
     docs_to_kl = list(set(zip(first_docs, kl)))
     sorted_kl = sorted(docs_to_kl, key=lambda x: x[1])
     print("Lowest 20")
