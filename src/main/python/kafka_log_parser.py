@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S,%f"
 
@@ -12,6 +13,8 @@ class LogLine:
         self.log_level = elements[5]
         self.payload = elements[6:]
         self.payload_str = " ".join(self.payload)
+        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-]+)\\].*", self.payload_str)
+        self.thread = matches.group(1)
 
     def __str__(self):
         return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"

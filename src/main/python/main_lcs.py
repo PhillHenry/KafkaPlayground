@@ -14,7 +14,7 @@ WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
 
 
-def to_logs(hash_to_logs: dict, machine: str):
+def to_logs(hash_to_logs: dict, machine: str) -> [int]:
     log_bins = log_to_index(hash_to_logs)
     log_bins = sorted(log_bins.items(), key=lambda x: x[0].timestamp)
     xs = list(reversed([bin for log, bin in log_bins if log.machine == machine])) #[:slice]
@@ -75,10 +75,12 @@ if __name__ == "__main__":
     second_log_to_hash = to_logs(second_hash_to_logs, machine)
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
+    first_log_to_index = log_to_index(first_hash_to_logs)
+    second_log_to_index = log_to_index(second_hash_to_logs)
     for x in first_delta:
-        first = clean_line(first_logs[x].payload_str)
-        second = clean_line(second_logs[x].payload_str)
-        if first != second:
-            print(first)
-            print(second)
+        first = first_logs[x]
+        second = second_logs[x]
+        if first_log_to_index[first] != second_log_to_index[second]:
+            print(human_readable(first))
+            print(human_readable(second))
             print("\n")
