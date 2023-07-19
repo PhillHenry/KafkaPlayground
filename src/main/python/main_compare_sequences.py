@@ -40,6 +40,8 @@ def information(words_file: str, first: str, second: str):
     first_hash_to_logs, first_lines, second_hash_to_logs, second_lines = sequences_of(first,
                                                                                       second,
                                                                                       words_file)
+    print_bins(first_hash_to_logs)
+    print_bins(second_hash_to_logs)
     fig, ax = plt.subplots(1, 1)
     fig = plt.figure(figsize=(16,6))
     machine = "kafka1:"
@@ -87,7 +89,6 @@ def make_lsh_bins(docs: [LogLine],
     df = one_hot(docs, word_indices, ignore_words, WORD_SHINGLES)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     hash_to_logs = lsh_bin_logs(bin_indices, lines)
-    print_bins(hash_to_logs)
     return hash_to_logs
 
 

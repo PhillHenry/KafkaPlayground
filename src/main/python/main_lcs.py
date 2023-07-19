@@ -29,17 +29,16 @@ def lcs(xs, ys):
     return m
 
 
-def to_logs(hash_to_logs: dict, slice: int, machine: str):
+def to_logs(hash_to_logs: dict, machine: str):
     log_bins = log_to_index(hash_to_logs)
     log_bins = sorted(log_bins.items(), key=lambda x: x[0].timestamp)
-    xs = list(reversed([bin for log, bin in log_bins if log.machine == machine]))[:slice]
-    for x in log_bins[:20]:
-        print(human_readable(x[0]))
+    xs = list(reversed([bin for log, bin in log_bins if log.machine == machine])) #[:slice]
+    print(f"Log size = {len(log_bins)} of which {len(xs)} are for machine {machine}")
     return xs
 
 
 def out_of_order(m: np.ndarray) -> [int]:
-    deltas = []
+    deltas = set([])
     print(f"\nOut of Order ({m.shape}:")
     i = j = 0
     while i < m.shape[0] - 2 and j < m.shape[1] - 2:
@@ -47,13 +46,17 @@ def out_of_order(m: np.ndarray) -> [int]:
         if m[i + 1, j + 1] < d:
             i += 1
             j += 1
-        elif m[i + 1, j] <= m[i, j + 1]:
-            deltas.append(i)
+        elif m[i + 1, j] < m[i, j + 1]:
+            deltas.add(i)
             i += 1
+        elif m[i, j + 1] < m[i + 1, j]:
+            deltas.add(i)
+            j += 1
         else:
-            second_delta.append(j)
+            deltas.add(i)
             j += i
-    return deltas
+    print(f"Number of deltas {len(deltas)}")
+    return list(sorted(list(deltas)))
 
 
 def filter(log_lines: [LogLine], machine: str) -> [LogLine]:
@@ -67,6 +70,7 @@ def print_differences(first_logs: [LogLine],
                       machine: str):
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
+    print(f"Number of log lines is {len(first_logs)} and {len(second_logs)}")
     with open(f"/tmp/{delimiting(machine, '')}_first.log", "w") as f:
         print("First deltas")
         write_to_file(f, first_delta, first_logs)
@@ -84,10 +88,9 @@ def write_to_file(f, index: [int], log_lines: [LogLine]):
 
 
 def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> [int]:
-    slice = 800
-    m = lcs(to_logs(first_hash_to_logs, slice, machine),
-            to_logs(second_hash_to_logs, slice, machine))
-    print(f"{m[0, 0]} out of {slice} in order")
+    m = lcs(to_logs(first_hash_to_logs, machine),
+            to_logs(second_hash_to_logs, machine))
+    print(f"{m[0, 0]} out of {min(m.shape[0], m.shape[1])} in order")
     # plot_heatmap(m)
     return out_of_order(m)
 

@@ -155,7 +155,4 @@ def lsh_bin_logs(bin_indices: np.ndarray, lines: []) -> dict:
 
 def words_to_ignore_in(docs: [str], char_freq: dict, shingles: set, penalty: float) -> [str]:
     top = highest_entropy_words(docs, char_freq, shingles, penalty)
-    print("Ignoring:")
-    for w in top:
-        print(f"\t{w}")
     return top
