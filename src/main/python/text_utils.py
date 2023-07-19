@@ -74,9 +74,9 @@ def remove_pure_numbers(words):
     return [w for w in words if not w.strip().isdigit()]
 
 
-def delimiting(x: str) -> str:
+def delimiting(x: str, replacement=" ") -> str:
     for delimiter in string.punctuation:
-        x = x.replace(delimiter, " ")
+        x = x.replace(delimiter, replacement)
     return x
 
 

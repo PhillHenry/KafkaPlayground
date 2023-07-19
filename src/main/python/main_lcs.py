@@ -6,6 +6,7 @@ import numpy as np
 from kafka_log_parser import LogLine
 from main_compare_sequences import sequences_of, log_to_index
 from rendering import human_readable
+from text_utils import delimiting
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -37,7 +38,9 @@ def to_logs(hash_to_logs: dict, slice: int, machine: str):
     return xs
 
 
-def out_of_order(m: np.ndarray, first_logs: [LogLine], second_logs: [LogLine]):
+def out_of_order(m: np.ndarray) -> ([int], [int]):
+    first_delta = []
+    second_delta = []
     print(f"\nOut of Order ({m.shape}:")
     i = j = 0
     while i < m.shape[0] - 2 and j < m.shape[1] - 2:
@@ -45,27 +48,56 @@ def out_of_order(m: np.ndarray, first_logs: [LogLine], second_logs: [LogLine]):
         if m[i + 1, j + 1] < d:
             i += 1
             j += 1
-        elif m[i + 1, j] < m[i, j + 1]:
-            print(f"First: {human_readable(first_logs[i])}")
+        elif m[i + 1, j] <= m[i, j + 1]:
+            first_delta.append(i)
             i += 1
         else:
-            print(f"Second: {human_readable(second_logs[j])}")
+            second_delta.append(j)
             j += i
+    return first_delta, second_delta
 
 
 def filter(log_lines: [LogLine], machine: str) -> [LogLine]:
     return [x for x in log_lines if x.machine == machine]
 
 
+def print_differences(first_logs: [LogLine],
+                      first_delta: [int],
+                      second_logs: [LogLine],
+                      second_delta: [int],
+                      machine: str):
+    first_logs = filter(first_logs, machine)
+    second_logs = filter(second_logs, machine)
+    with open(f"/tmp/{delimiting(machine, '')}.log", "w") as f:
+        print("First deltas")
+        for i in first_delta:
+            x = human_readable(first_logs[i])
+            print(x)
+            f.write(f"{x}\n")
+        print("Second deltas")
+        for i in second_delta:
+            x = human_readable(second_logs[i])
+            print(x)
+            f.write(f"{x}\n")
+
+
+def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> ([int], [int]):
+    slice = 800
+    m = lcs(to_logs(first_hash_to_logs, slice, machine),
+            to_logs(second_hash_to_logs, slice, machine))
+    print(f"{m[0, 0]} out of {slice} in order")
+    plot_heatmap(m)
+    return out_of_order(m)
+
+
+def plot_heatmap(m: np.ndarray):
+    fig = plt.figure(figsize=(16, 6))
+    plt.imshow(m, cmap='hot', interpolation='nearest')
+    plt.show()
+
+
 if __name__ == "__main__":
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs = sequences_of(sys.argv[2], sys.argv[3], sys.argv[1])
     machine = "kafka1:"
-    slice = 800
-    m = lcs(to_logs(first_hash_to_logs, slice, machine), to_logs(second_hash_to_logs, slice, machine))
-    first_logs = filter(first_logs, machine)
-    second_logs = filter(second_logs, machine)
-    out_of_order(m, first_logs, second_logs)
-    print(f"{m[0, 0]} out of {slice} in order")
-    fig = plt.figure(figsize=(16,6))
-    plt.imshow(m, cmap='hot', interpolation='nearest')
-    # plt.show()
+    first_delta, second_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
+    print_differences(first_logs, first_delta, second_logs, second_delta, machine)
