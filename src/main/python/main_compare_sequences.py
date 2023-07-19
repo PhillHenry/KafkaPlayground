@@ -33,40 +33,47 @@ def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label
     logs = logs[:1000]
     ys = [log_index[log] for log in logs]
     plt.scatter(range(len(logs)), ys, s=1, c=colour, label=f"{machine} {label}")
+    return ys
 
 
 def information(words_file: str, first: str, second: str):
+    first_hash_to_logs, first_lines, second_hash_to_logs, second_lines = sequences_of(first,
+                                                                                      second,
+                                                                                      words_file)
+    fig, ax = plt.subplots(1, 1)
+    fig = plt.figure(figsize=(16,6))
+    machine = "kafka1:"
+    first_ys = plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red", "first run")
+    second_ys = plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue", "second run")
+    plt.legend()
+    plt.savefig(f"/tmp/one_hot_{machine}.pdf")
+    plt.show()
+    return first_ys, second_ys
+
+
+def sequences_of(first, second, words_file):
     english = read_plain_file(words_file)
     char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
-
     first_lines = read_file(first)
     first_docs = list(map(clean, first_lines))
     second_lines = read_file(second)
     second_docs = list(map(clean, second_lines))
     print(f"Number of lines = {len(first_docs)}")
-
     first_word_count = frequencies(first_docs, WORD_SHINGLES)
     second_word_count = frequencies(second_docs, WORD_SHINGLES)
-    print(f"top words: {[w for w, c in sorted(first_word_count.items(), key=lambda x: -x[1])][:10]}")
-
+    print(
+        f"top words: {[w for w, c in sorted(first_word_count.items(), key=lambda x: -x[1])][:10]}")
     all_words = set(list(first_word_count.keys()) + list(second_word_count.keys()))
     words = {w for w in all_words if w in first_word_count.keys() and w in second_word_count.keys()}
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
-
     random_vectors = generate_random_vectors(len(words), 8)
     first_hash_to_logs = make_lsh_bins(first_docs, first_lines, first_word_count, random_vectors,
                                        word_indices, char_freq)
-    second_hash_to_logs = make_lsh_bins(second_docs, second_lines, second_word_count, random_vectors,
+    second_hash_to_logs = make_lsh_bins(second_docs, second_lines, second_word_count,
+                                        random_vectors,
                                         word_indices, char_freq)
-    fig, ax = plt.subplots(1, 1)
-    fig = plt.figure(figsize=(16,6))
-    machine = "kafka1:"
-    plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red", "first run")
-    plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue", "second run")
-    plt.legend()
-    plt.savefig(f"/tmp/one_hot_{machine}.pdf")
-    plt.show()
+    return first_hash_to_logs, first_lines, second_hash_to_logs, second_lines
 
 
 def make_lsh_bins(docs: [LogLine],
@@ -94,5 +101,7 @@ def print_bins(hash_to_logs):
                 line = f"{log}"
                 print(line)
 
+
 if __name__ == "__main__":
-    information(sys.argv[1], sys.argv[2], sys.argv[3])
+    first_ys, second_ys = information(sys.argv[1], sys.argv[2], sys.argv[3])
+
