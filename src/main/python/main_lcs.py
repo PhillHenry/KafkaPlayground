@@ -7,7 +7,7 @@ from kafka_log_parser import LogLine
 from lcs import lcs, out_of_order
 from main_compare_sequences import sequences_of, log_to_index
 from rendering import human_readable
-from text_utils import delimiting
+from text_utils import delimiting, clean_line
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -30,14 +30,15 @@ def print_differences(first_logs: [LogLine],
                       first_delta: [int],
                       second_logs: [LogLine],
                       second_delta: [int],
-                      machine: str):
+                      machine: str,
+                      label: str):
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
     print(f"Number of log lines is {len(first_logs)} and {len(second_logs)}")
-    with open(f"/tmp/{delimiting(machine, '')}_first.log", "w") as f:
+    with open(f"/tmp/{delimiting(machine, '')}_first_{label}.log", "w") as f:
         print("First deltas")
         write_to_file(f, first_delta, first_logs)
-    with open(f"/tmp/{delimiting(machine, '')}_second.log", "w") as f:
+    with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
         print("\nSecond deltas")
         f.write("\n")
         write_to_file(f, second_delta, second_logs)
@@ -69,4 +70,15 @@ if __name__ == "__main__":
     machine = "kafka1:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
-    print_differences(first_logs, first_delta, second_logs, second_delta, machine)
+    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all")
+    first_log_to_hash = to_logs(first_hash_to_logs, machine)
+    second_log_to_hash = to_logs(second_hash_to_logs, machine)
+    first_logs = filter(first_logs, machine)
+    second_logs = filter(second_logs, machine)
+    for x in first_delta:
+        first = clean_line(first_logs[x].payload_str)
+        second = clean_line(second_logs[x].payload_str)
+        if first != second:
+            print(first)
+            print(second)
+            print("\n")
