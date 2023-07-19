@@ -28,4 +28,4 @@ def test_out_of_order():
     print(f"\n{m}")
     assert m.shape == (len(xs), len(ys))
     assert m[0][0] == 5
-    assert len(out_of_order(m)) == 4
+    assert out_of_order(m) == [2, 4, 6, 8]
