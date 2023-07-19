@@ -13,7 +13,7 @@ class LogLine:
         self.log_level = elements[5]
         self.payload = elements[6:]
         self.payload_str = " ".join(self.payload)
-        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-]+)\\].*", self.payload_str)
+        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-]+)\\].*", self.payload_str.strip())
         self.thread = matches.group(1)
 
     def __str__(self):

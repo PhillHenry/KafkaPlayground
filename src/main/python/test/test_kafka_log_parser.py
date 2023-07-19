@@ -12,3 +12,8 @@ def test_parse_info():
     assert log.timestamp.strftime(DATETIME_FORMAT)[0:len(timestamp)] == timestamp
     assert log.log_level == log_level
     assert log.thread == thread
+
+
+def test_parse_thread():
+    log = LogLine("kafka2: onNext: RAW: [2023-07-04 14:13:23,467] INFO [controller-2-ThrottledChannelReaper-ControllerMutation]: Stopped (kafka.server.ClientQuotaManager$ThrottledChannelReaper)\n")
+    assert log.thread == "controller-2-ThrottledChannelReaper-ControllerMutation"

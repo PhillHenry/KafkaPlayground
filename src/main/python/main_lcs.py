@@ -16,7 +16,7 @@ CHAR_SHINGLES = {2, 3, }
 
 def to_logs(hash_to_logs: dict, machine: str) -> [int]:
     log_bins = log_to_index(hash_to_logs)
-    log_bins = sorted(log_bins.items(), key=lambda x: x[0].timestamp)
+    log_bins = sorted(log_bins.items(), key=lambda x: (x[0].thread, x[0].timestamp))
     xs = list(reversed([bin for log, bin in log_bins if log.machine == machine])) #[:slice]
     print(f"Log size = {len(log_bins)} of which {len(xs)} are for machine {machine}")
     return xs
