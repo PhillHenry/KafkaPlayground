@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from main_compare_sequences import sequences_of, log_to_index
+from rendering import human_readable
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -17,26 +18,30 @@ def lcs(xs, ys):
     y = len(ys) - 1
     for i in range(x, -1, -1):
         for j in range(y, -1, -1):
-            if i == x and j == y:
+            if i == x or j == y:
                 m[i, j] = 0
             elif xs[i] == ys[j]:
                 m[i, j] = m[i + 1, j + 1] + 1
             else:
-                if i == x:
-                    m[i, j] = m[i, j + 1]
-                elif j == y:
-                    m[i, j] = m[i + 1, j]
-                else:
-                    m[i, j] = max(m[i, j + 1], m[i + 1, j])
-
+                m[i, j] = max(m[i, j + 1], m[i + 1, j])
+    print(m[0, 0])
     return m
+
+
+def to_logs(hash_to_logs):
+    log_bins = log_to_index(hash_to_logs)
+    log_bins = sorted(log_bins.items(), key=lambda x: x[0].timestamp)
+    xs = list(reversed([bin for _, bin in log_bins]))[:800]
+    for x in log_bins[:20]:
+        print(human_readable(x[0]))
+    return xs
 
 
 if __name__ == "__main__":
     first_hash_to_logs, first_lines, second_hash_to_logs, second_lines = sequences_of(sys.argv[2], sys.argv[3], sys.argv[1])
     machine = "kafka1:"
-    first_log_indices = list(log_to_index(first_hash_to_logs).values())
-    second_log_indices = list(log_to_index(second_hash_to_logs).values())
-    m = lcs(first_log_indices, second_log_indices)
+    m = lcs(to_logs(first_hash_to_logs), to_logs(second_hash_to_logs))
+    fig, ax = plt.subplots(1, 1)
+    fig = plt.figure(figsize=(16,6))
     plt.imshow(m, cmap='hot', interpolation='nearest')
     plt.show()
