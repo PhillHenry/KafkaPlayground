@@ -13,8 +13,11 @@ class LogLine:
         self.log_level = elements[5]
         self.payload = elements[6:]
         self.payload_str = " ".join(self.payload)
-        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-]+)\\].*", self.payload_str.strip())
-        self.thread = matches.group(1)
+        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-=_]+)\\].*", self.payload_str.strip())
+        try:
+            self.thread = matches.group(1)
+        except:
+            self.thread = "None"
 
     def __str__(self):
         return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"
@@ -39,6 +42,7 @@ def read_plain_file(filename) -> [str]:
 
 def read_file(filename) -> [LogLine]:
     log_lines = []
+    failures = 0
     with open(filename, 'r') as f:
         for line in f:
             try:
@@ -46,5 +50,7 @@ def read_file(filename) -> [LogLine]:
                 log_lines.append(log)
             except Exception:
                 print(f"Could not parse line:\n{line}")
+                failures += 1
+    print(f"Was unable to process a total of {failures} lines")
     return log_lines
 

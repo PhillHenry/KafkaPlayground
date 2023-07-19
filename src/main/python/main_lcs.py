@@ -7,7 +7,7 @@ from kafka_log_parser import LogLine
 from lcs import lcs, out_of_order
 from main_compare_sequences import sequences_of, log_to_index
 from rendering import human_readable
-from text_utils import delimiting, clean_line
+from text_utils import delimiting
 
 WORD_SHINGLES = {2,3}
 WORD_PENALTY = 1e-2
@@ -80,7 +80,9 @@ if __name__ == "__main__":
     for x in first_delta:
         first = first_logs[x]
         second = second_logs[x]
-        if first_log_to_index[first] != second_log_to_index[second]:
-            print(human_readable(first))
-            print(human_readable(second))
+        first_hash = first_log_to_index[first]
+        second_hash = second_log_to_index[second]
+        if first_hash != second_hash:
+            print(f"{first_hash}:\t{human_readable(first)}")
+            print(f"{second_hash}:\t{human_readable(second)}")
             print("\n")

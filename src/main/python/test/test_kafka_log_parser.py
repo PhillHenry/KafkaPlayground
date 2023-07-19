@@ -17,3 +17,5 @@ def test_parse_info():
 def test_parse_thread():
     log = LogLine("kafka2: onNext: RAW: [2023-07-04 14:13:23,467] INFO [controller-2-ThrottledChannelReaper-ControllerMutation]: Stopped (kafka.server.ClientQuotaManager$ThrottledChannelReaper)\n")
     assert log.thread == "controller-2-ThrottledChannelReaper-ControllerMutation"
+    log = LogLine("kafka3: onNext: RAW: [2023-07-04 14:13:05,481] INFO [BrokerLifecycleManager id=3] The broker has caught up. Transitioning from STARTING to RECOVERY. (kafka.server.BrokerLifecycleManager)\n")
+    assert log.thread == "BrokerLifecycleManager id=3"
