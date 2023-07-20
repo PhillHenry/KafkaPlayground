@@ -6,6 +6,7 @@ import numpy as np
 from kafka_log_parser import LogLine
 from lcs import lcs, out_of_order
 from main_compare_sequences import sequences_of, log_to_index
+from plot_lsh import do_plot, plot_timeseries
 from rendering import human_readable
 from text_utils import delimiting
 
@@ -72,9 +73,11 @@ def plot_heatmap(m: np.ndarray):
 
 
 def compare_lcs(first_file, second_file, english_file):
+    # Not sure about ignoring. We seem to be losing useful things like:
+    # Vote request VoteRequestData(clusterId='AQIDBAUGBwgJCgsMDQ4PEA', ...
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
         first_file, second_file, english_file)
-    machine = "kafka3:"
+    machine = "kafka1:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
     print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", ignored_words)
@@ -94,6 +97,13 @@ def compare_lcs(first_file, second_file, english_file):
             print("{:<10} {:}".format(first_hash, first_line))
             print("{:<10} {:}".format(second_hash, second_line))
             print("\n")
+
+    first_log_index = [(first_logs[i], first_log_to_index[first_logs[i]]) for i in first_delta]
+    print(f"no. deviations = {len(first_log_index)}")
+    fig, ax = plt.subplots(1, 1)
+    fig = plt.figure(figsize=(16,6))
+    plot_timeseries(first_log_index, machine, "red")
+    plt.show()
 
 
 if __name__ == "__main__":
