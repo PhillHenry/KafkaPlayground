@@ -22,6 +22,7 @@ def test_frequency_of_chars():
 
 def test_remove_timings():
     assert len(remove_timings(["0ms", "15ms", "137009ms", "not a duration"])) == 1
+    assert len(remove_timings(["8 milliseconds", "not a duration"])) == 1
 
 
 def test_no_camel_case():
@@ -40,9 +41,17 @@ def test_clean():
     assert number not in cleaned
 
 
-def _test_camel_case_split_does_not_split_uuids():
+def test_camel_case_happy_path():
+    assert camel_case_split("GroupMetadataManager") == ["Group", "Metadata", "Manager"]
+
+
+def test_no_split_entropic():
+    assert "gOinsCZ0RZ-bGFcdVUlzAg" in camel_case_split("gOinsCZ0RZ-bGFcdVUlzAg")
+
+
+def test_camel_case_split_does_not_split_uuids():
     assert len(camel_case_split("A2b3C4FFF2fF")) == 1
 
 
-def _test_camel_case_split_no_number_split():
+def test_camel_case_split_no_number_split():
     assert len(camel_case_split("transactionId1688479976915")) == 1

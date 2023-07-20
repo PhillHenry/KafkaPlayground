@@ -31,24 +31,30 @@ def print_differences(first_logs: [LogLine],
                       second_logs: [LogLine],
                       second_delta: [int],
                       machine: str,
-                      label: str):
+                      label: str,
+                      ignoring: [str]):
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
     print(f"Number of log lines is {len(first_logs)} and {len(second_logs)}")
     with open(f"/tmp/{delimiting(machine, '')}_first_{label}.log", "w") as f:
         print("First deltas")
-        write_to_file(f, first_delta, first_logs)
+        write_to_file(f, first_delta, first_logs, ignoring)
     with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
         print("\nSecond deltas")
         f.write("\n")
-        write_to_file(f, second_delta, second_logs)
+        write_to_file(f, second_delta, second_logs, ignoring)
 
 
-def write_to_file(f, index: [int], log_lines: [LogLine]):
+def write_to_file(f,
+                  index: [int],
+                  log_lines: [LogLine],
+                  ignoring: [str]):
     for i in index:
-        x = f"{i}: {human_readable(log_lines[i])}"
-        print(x)
-        f.write(f"{x}\n")
+        line = human_readable(log_lines[i])
+        if not any([x in line.lower() for x in ignoring]):
+            x = f"{i}: {line}"
+            print(x)
+            f.write(f"{x}\n")
 
 
 def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> [int]:
@@ -65,14 +71,14 @@ def plot_heatmap(m: np.ndarray):
     plt.show()
 
 
-if __name__ == "__main__":
-    first_hash_to_logs, first_logs, second_hash_to_logs, second_logs = sequences_of(sys.argv[2], sys.argv[3], sys.argv[1])
-    machine = "kafka1:"
+def compare_lcs(first_file, second_file, english_file):
+    first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
+        first_file, second_file, english_file)
+    machine = "kafka3:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
-    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all")
-    first_log_to_hash = to_logs(first_hash_to_logs, machine)
-    second_log_to_hash = to_logs(second_hash_to_logs, machine)
+    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", ignored_words)
+
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
     first_log_to_index = log_to_index(first_hash_to_logs)
@@ -82,7 +88,16 @@ if __name__ == "__main__":
         second = second_logs[x]
         first_hash = first_log_to_index[first]
         second_hash = second_log_to_index[second]
-        if first_hash != second_hash:
-            print(f"{first_hash}:\t{human_readable(first)}")
-            print(f"{second_hash}:\t{human_readable(second)}")
+        first_line = human_readable(first)
+        second_line = human_readable(second)
+        if first_hash != second_hash and not any([x in first_line.lower() for x in ignored_words]) and not any([x in second_line.lower() for x in ignored_words]):
+            print("{:<10} {:}".format(first_hash, first_line))
+            print("{:<10} {:}".format(second_hash, second_line))
             print("\n")
+
+
+if __name__ == "__main__":
+    first_file = sys.argv[2]
+    second_file = sys.argv[3]
+    english_file = sys.argv[1]
+    compare_lcs(first_file, second_file, english_file)

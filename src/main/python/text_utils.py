@@ -9,8 +9,11 @@ from rendering import human_readable
 
 
 def camel_case_split(identifier: str) -> [str]:
-    matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
-    return [m.group(0) for m in matches]
+    if not any(i.isdigit() for i in identifier):
+        matches = finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
+        return [m.group(0) for m in matches]
+    else:
+        return [identifier]
 
 
 def to_shingles(doc: str, ngrams: set[int], split_on=" "):
@@ -96,6 +99,8 @@ def clean_line(line: str) -> str:
 def remove_timings(words: [str]):
     p = re.compile('\d+ms')
     words = [w for w in words if not p.match(w)]
+    p = re.compile('\d+\ millisecond')
+    words = [w for w in words if not p.match(w)]
     return words
 
 
@@ -133,8 +138,9 @@ def kullback_liebler(docs: [str], ignore_words: [str], ps: dict, qs: dict) -> di
 
 def highest_entropy_words(docs: [str], char_freq: dict, shingles: set, penalty: float) -> [str]:
     word_score = sorted_word_average_entropy(docs, char_freq, shingles, penalty)
-    max_score = word_score[-1][1]
-    top = [w for w, s in word_score if s > max_score / 2]
+    # max_score = word_score[-1][1]
+    # top = [w for w, s in word_score if s > max_score / 3]
+    top = [w for w, _ in word_score][-18:]  # TODO this is somewhat arbitrary...
     return top
 
 
@@ -155,4 +161,5 @@ def lsh_bin_logs(bin_indices: np.ndarray, lines: []) -> dict:
 
 def words_to_ignore_in(docs: [str], char_freq: dict, shingles: set, penalty: float) -> [str]:
     top = highest_entropy_words(docs, char_freq, shingles, penalty)
+    print(f"Most entropic words: {top}")
     return top
