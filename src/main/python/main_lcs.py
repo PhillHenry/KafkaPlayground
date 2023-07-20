@@ -6,7 +6,6 @@ import numpy as np
 from kafka_log_parser import LogLine
 from lcs import lcs, out_of_order
 from main_compare_sequences import sequences_of, log_to_index
-from plot_lsh import do_plot, plot_timeseries
 from rendering import human_readable
 from text_utils import delimiting
 
@@ -102,7 +101,8 @@ def compare_lcs(first_file, second_file, english_file):
     print(f"no. deviations = {len(first_log_index)}")
     fig, ax = plt.subplots(1, 1)
     fig = plt.figure(figsize=(16,6))
-    plot_timeseries(first_log_index, machine, "red")
+    plt.scatter(first_delta, [first_log_to_index[first_logs[i]] for i in first_delta], s=1, c="red", label=machine)
+    plt.scatter(second_delta, [second_log_to_index[second_logs[i]] for i in first_delta], s=1, c="blue", label=machine)
     plt.show()
 
 
