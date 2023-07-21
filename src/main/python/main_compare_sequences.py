@@ -11,7 +11,7 @@ from vectorizing import generate_random_vectors, lsh_projection, one_hot
 WORD_SHINGLES = {2, 3}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
-VEC_SIZE = 8
+VEC_SIZE = 12
 
 
 def to_log_index_tuples(x: dict) -> []:

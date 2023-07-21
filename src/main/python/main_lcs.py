@@ -42,10 +42,10 @@ def print_differences(first_logs: [LogLine],
     with open(f"/tmp/{delimiting(machine, '')}_first_{label}.log", "w") as f:
         print("First deltas")
         write_to_file(f, first_delta, first_logs, ignoring, first_log_to_index)
-    with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
-        print("\nSecond deltas")
-        f.write("\n")
-        write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
+    # with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
+    #     print("\nSecond deltas")
+    #     f.write("\n")
+    #     write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
 
 
 def write_to_file(f,
