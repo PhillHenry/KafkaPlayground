@@ -10,7 +10,7 @@ from main_compare_sequences import sequences_of, log_to_index, VEC_SIZE
 from rendering import human_readable, BColors
 from text_utils import delimiting
 
-WORD_SHINGLES = {1, 2, 3, 4}
+WORD_SHINGLES = {1, 2, 3, 4, 6, 7}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, 4}
 
@@ -91,8 +91,9 @@ def plot_heatmap(m: np.ndarray):
 def compare_lcs(first_file, second_file, english_file):
     # Not sure about ignoring. We seem to be losing useful things like:
     # Vote request VoteRequestData(clusterId='AQIDBAUGBwgJCgsMDQ4PEA', ...
+    common_words = ["apache", "kafka", "org"]
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
-        first_file, second_file, english_file)
+        first_file, second_file, english_file, common_words)
     machine = "kafka1:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)

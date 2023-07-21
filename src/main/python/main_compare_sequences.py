@@ -11,7 +11,7 @@ from vectorizing import generate_random_vectors, lsh_projection, one_hot
 WORD_SHINGLES = {2, 3}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
-VEC_SIZE = 12
+VEC_SIZE = 8
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -40,7 +40,8 @@ def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label
 def information(words_file: str, first: str, second: str):
     first_hash_to_logs, first_lines, second_hash_to_logs, second_lines, _ = sequences_of(first,
                                                                                          second,
-                                                                                         words_file)
+                                                                                         words_file,
+                                                                                         [])
     print_bins(first_hash_to_logs)
     print_bins(second_hash_to_logs)
     fig, ax = plt.subplots(1, 1)
@@ -55,14 +56,21 @@ def information(words_file: str, first: str, second: str):
     return first_ys, second_ys
 
 
-def sequences_of(first_file: str, second_file: str, words_file):
+def is_within(word: str, ignore_words: [str]) -> bool:
+    for forbidden in ignore_words:
+        if forbidden in word:
+            return True
+    return False
+
+
+def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [str]):
     first_lines = read_file(first_file)
     first_docs = list(map(clean, first_lines))
     second_lines = read_file(second_file)
     second_docs = list(map(clean, second_lines))
     print(f"Number of lines = {len(first_docs)}")
-    first_word_count = frequencies(first_docs, WORD_SHINGLES)
-    second_word_count = frequencies(second_docs, WORD_SHINGLES)
+    first_word_count = frequencies(first_docs, WORD_SHINGLES, ignore_words=ignore_words)
+    second_word_count = frequencies(second_docs, WORD_SHINGLES, ignore_words=ignore_words)
     print(
         f"top words: {[w for w, c in sorted(first_word_count.items(), key=lambda x: -x[1])][:10]}")
     all_words = set(list(first_word_count.keys()) + list(second_word_count.keys()))
