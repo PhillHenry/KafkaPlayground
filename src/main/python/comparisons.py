@@ -18,7 +18,7 @@ def search_nearby_bins(query_bin_bits, table, search_radius=3, candidate_set=Non
 
     n_vectors = query_bin_bits.shape[0]
     powers_of_two = 1 << np.arange(n_vectors - 1, -1, step=-1)
-
+    potentials = []
     for different_bits in combinations(range(n_vectors), search_radius):
         # flip the bits (n_1, n_2, ..., n_r) of the query bin to produce a new bit vector
         index = list(different_bits)
@@ -27,7 +27,7 @@ def search_nearby_bins(query_bin_bits, table, search_radius=3, candidate_set=Non
 
         # convert the new bit vector to an integer index
         nearby_bin = alternate_bits.dot(powers_of_two)
-
+        potentials.append(nearby_bin)
         # fetch the list of documents belonging to
         # the bin indexed by the new bit vector,
         # then add those documents to candidate_set;
@@ -35,6 +35,7 @@ def search_nearby_bins(query_bin_bits, table, search_radius=3, candidate_set=Non
         if nearby_bin in table:
             candidate_set.update(table[nearby_bin])
 
+    # print(f"potentials = {potentials}")
     return candidate_set
 
 

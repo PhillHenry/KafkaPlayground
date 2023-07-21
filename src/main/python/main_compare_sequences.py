@@ -11,6 +11,7 @@ from vectorizing import generate_random_vectors, lsh_projection, one_hot
 WORD_SHINGLES = {2, 3}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
+VEC_SIZE = 8
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -72,7 +73,7 @@ def sequences_of(first_file: str, second_file: str, words_file):
 
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
-    random_vectors = generate_random_vectors(len(words), 8)
+    random_vectors = generate_random_vectors(len(words), VEC_SIZE)
     first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_lines, random_vectors,
                                                      word_indices, char_freq)
     second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_lines,

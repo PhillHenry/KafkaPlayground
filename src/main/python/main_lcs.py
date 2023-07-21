@@ -3,15 +3,16 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
+from comparisons import search_nearby_bins
 from kafka_log_parser import LogLine
 from lcs import lcs, out_of_order
-from main_compare_sequences import sequences_of, log_to_index
-from rendering import human_readable
+from main_compare_sequences import sequences_of, log_to_index, VEC_SIZE
+from rendering import human_readable, BColors
 from text_utils import delimiting
 
-WORD_SHINGLES = {2,3}
+WORD_SHINGLES = {1, 2, 3, 4}
 WORD_PENALTY = 1e-2
-CHAR_SHINGLES = {2, 3, }
+CHAR_SHINGLES = {2, 3, 4}
 
 
 def to_logs(hash_to_logs: dict, machine: str) -> [int]:
@@ -32,29 +33,45 @@ def print_differences(first_logs: [LogLine],
                       second_delta: [int],
                       machine: str,
                       label: str,
-                      ignoring: [str]):
+                      ignoring: [str],
+                      first_log_to_index: dict,
+                      second_log_to_index: dict):
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
     print(f"Number of log lines is {len(first_logs)} and {len(second_logs)}")
     with open(f"/tmp/{delimiting(machine, '')}_first_{label}.log", "w") as f:
         print("First deltas")
-        write_to_file(f, first_delta, first_logs, ignoring)
+        write_to_file(f, first_delta, first_logs, ignoring, first_log_to_index)
     with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
         print("\nSecond deltas")
         f.write("\n")
-        write_to_file(f, second_delta, second_logs, ignoring)
+        write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
 
 
 def write_to_file(f,
                   index: [int],
                   log_lines: [LogLine],
-                  ignoring: [str]):
+                  ignoring: [str],
+                  log_to_index: dict):
+    last_bin = -1
     for i in index:
-        line = human_readable(log_lines[i])
+        log = log_lines[i]
+        line = human_readable(log)
+        bin = log_to_index[log]
+
+        query = np.unpackbits(np.array([bin], dtype='>i8').view(np.uint8))[-VEC_SIZE:]
+        candidates = search_nearby_bins(query, {last_bin: []}, search_radius=3)
+        # print(f"candidates = {candidates}")
         if not any([x in line.lower() for x in ignoring]):
-            x = f"{i}: {line}"
+            x = f"{line}"
+            if last_bin == bin or len(candidates) > 0:
+                x = f"{BColors.DARKGRAY}{x}"
+            else:
+                x = f"{BColors.BOLD}{BColors.RED}{x}{BColors.UNBOLD}"
+            x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
             print(x)
             f.write(f"{x}\n")
+            last_bin = bin
 
 
 def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> [int]:
@@ -79,12 +96,34 @@ def compare_lcs(first_file, second_file, english_file):
     machine = "kafka1:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
-    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", ignored_words)
+    first_log_to_index = log_to_index(first_hash_to_logs)
+    second_log_to_index = log_to_index(second_hash_to_logs)
+    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", [], first_log_to_index, second_log_to_index)
 
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
-    first_log_to_index = log_to_index(first_hash_to_logs)
-    second_log_to_index = log_to_index(second_hash_to_logs)
+    # compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
+    #                              second_log_to_index, second_logs)
+
+    # plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, machine, second_delta,
+    #                              second_log_to_index, second_logs)
+
+
+def plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, machine, second_delta,
+                                 second_log_to_index, second_logs):
+    first_log_index = [(first_logs[i], first_log_to_index[first_logs[i]]) for i in first_delta]
+    print(f"no. deviations = {len(first_log_index)}")
+    fig, ax = plt.subplots(1, 1)
+    fig = plt.figure(figsize=(16, 6))
+    plt.scatter(first_delta, [first_log_to_index[first_logs[i]] for i in first_delta], s=1, c="red",
+                label=machine)
+    plt.scatter(second_delta, [second_log_to_index[second_logs[i]] for i in first_delta], s=1,
+                c="blue", label=machine)
+    plt.show()
+
+
+def compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
+                                 second_log_to_index, second_logs):
     for x in first_delta:
         first = first_logs[x]
         second = second_logs[x]
@@ -92,18 +131,12 @@ def compare_lcs(first_file, second_file, english_file):
         second_hash = second_log_to_index[second]
         first_line = human_readable(first)
         second_line = human_readable(second)
-        if first_hash != second_hash and not any([x in first_line.lower() for x in ignored_words]) and not any([x in second_line.lower() for x in ignored_words]):
+        if first_hash != second_hash and not any(
+                [x in first_line.lower() for x in ignored_words]) and not any(
+                [x in second_line.lower() for x in ignored_words]):
             print("{:<10} {:}".format(first_hash, first_line))
             print("{:<10} {:}".format(second_hash, second_line))
             print("\n")
-
-    first_log_index = [(first_logs[i], first_log_to_index[first_logs[i]]) for i in first_delta]
-    print(f"no. deviations = {len(first_log_index)}")
-    fig, ax = plt.subplots(1, 1)
-    fig = plt.figure(figsize=(16,6))
-    plt.scatter(first_delta, [first_log_to_index[first_logs[i]] for i in first_delta], s=1, c="red", label=machine)
-    plt.scatter(second_delta, [second_log_to_index[second_logs[i]] for i in first_delta], s=1, c="blue", label=machine)
-    plt.show()
 
 
 if __name__ == "__main__":

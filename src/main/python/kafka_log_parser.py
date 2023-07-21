@@ -22,6 +22,10 @@ class LogLine:
     def __str__(self):
         return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"
 
+    def set_bin(self, bin: int):
+        self.bin = bin
+        return self
+
 
 def parse_logs_per_host(filename: str) -> dict:
     machine_to_logs = {}
