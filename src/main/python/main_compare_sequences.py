@@ -6,12 +6,12 @@ import numpy as np
 from kafka_log_parser import read_file, LogLine, read_plain_file
 from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
-from vectorizing import generate_random_vectors, lsh_projection, one_hot
+from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf
 
 WORD_SHINGLES = {2, 3}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, }
-VEC_SIZE = 8
+VEC_SIZE = 10
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -69,6 +69,11 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     second_lines = read_file(second_file)
     second_docs = list(map(clean, second_lines))
     print(f"Number of lines = {len(first_docs)}")
+
+    english = read_plain_file(words_file)
+    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
+    ignore_words = ignore_words + words_to_ignore_in(first_docs + second_docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+
     first_word_count = frequencies(first_docs, WORD_SHINGLES, ignore_words=ignore_words)
     second_word_count = frequencies(second_docs, WORD_SHINGLES, ignore_words=ignore_words)
     print(
@@ -76,27 +81,27 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     all_words = set(list(first_word_count.keys()) + list(second_word_count.keys()))
     words = {w for w in all_words if w in first_word_count.keys() and w in second_word_count.keys()}
 
-    english = read_plain_file(words_file)
-    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
+
 
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
     random_vectors = generate_random_vectors(len(words), VEC_SIZE)
-    first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_lines, random_vectors,
-                                                     word_indices, char_freq)
-    second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_lines,
+    first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_lines, first_word_count, random_vectors,
+                                                     word_indices, ignore_words)
+    second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_lines, second_word_count,
                                                        random_vectors,
                                                        word_indices,
-                                                       char_freq)
+                                                       ignore_words)
     return first_hash_to_logs, first_lines, second_hash_to_logs, second_lines, first_ignore + second_ignore
 
 
 def make_lsh_bins(docs: [LogLine],
                   lines: [str],
+                  first_word_count,
                   random_vectors: np.ndarray,
                   word_indices: dict,
-                  char_freq: dict) -> (dict, [str]):
-    ignore_words = words_to_ignore_in(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+                  ignore_words: []) -> (dict, [str]):
+
     # df = tf_idf(docs, word_indices, first_word_count, ignore_words, WORD_SHINGLES)
     df = one_hot(docs, word_indices, ignore_words, WORD_SHINGLES)
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
