@@ -32,7 +32,17 @@ def log_to_index(index_to_log: dict) -> dict:
 
 def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label: str):
     logs = logs[:1000]
-    ys = [log_index[log] for log in logs]
+    next_index = 0
+    mappings = dict()
+    ys = []
+    for log in logs:
+        index = log_index[log]
+        if index in mappings:
+            ys.append(mappings[index])
+        else:
+            ys.append(next_index)
+            mappings[index] = next_index
+            next_index += 1
     plt.scatter(range(len(logs)), ys, s=1, c=colour, label=f"{machine} {label}")
     return ys
 
