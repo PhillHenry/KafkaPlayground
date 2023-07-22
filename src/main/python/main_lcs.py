@@ -11,9 +11,6 @@ from rendering import human_readable, BColors
 from text_utils import delimiting
 
 CONTEXT_IGNORE_WORDS = ["apache", "kafka", "org", "bitnami"]
-WORD_SHINGLES = {1, 2, 3, 4, 5}
-WORD_PENALTY = 1e-2
-CHAR_SHINGLES = {2, 3, 4}
 
 
 def to_logs(hash_to_logs: dict, machine: str) -> [int]:
@@ -103,7 +100,8 @@ def compare_lcs(first_file, second_file, english_file):
     first_log_to_index = log_to_index(first_hash_to_logs)
     second_log_to_index = log_to_index(second_hash_to_logs)
     print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", [], first_log_to_index, second_log_to_index)
-    print(f"Number of bins  = {len(first_hash_to_logs)}")
+    print(f"Number of bins in first  = {len(first_hash_to_logs)}")
+    print(f"Number of bins in second = {len(second_hash_to_logs)}")
 
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
