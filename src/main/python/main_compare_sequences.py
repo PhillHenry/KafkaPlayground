@@ -9,9 +9,9 @@ from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
 from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf, reduce_dimension
 
-WORD_SHINGLES = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
+WORD_SHINGLES = {x for x in range(30) if x > 3}
 WORD_PENALTY = 1e-2
-CHAR_SHINGLES = {2, 3, 4}
+CHAR_SHINGLES = {2, 3, 4, 5}
 VEC_SIZE = 24
 
 
@@ -86,10 +86,13 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
             all_words[word] = all_words[word] + second_word_count[word]
         else:
             all_words[word] = second_word_count[word]
-    all_words = {w: c for w, c in all_words.items()}  # if 1 < c < len(first_docs) // 100}
+    all_words = {w: c for w, c in all_words.items() if w in first_word_count.keys() and w in second_word_count.keys()}
     print(
         f"top words: {[w for w, c in sorted(all_words.items(), key=lambda x: -x[1])][:10]}")
     words = list(all_words.keys())
+    with open("/tmp/words.txt", "w") as f:
+        for word in sorted(words):
+            f.write(f"{word}\n")
 
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
@@ -124,8 +127,7 @@ def print_bins(hash_to_logs):
             delimiter = f"==== {hash_code} ===="
             print(delimiter)
             for log in logs[:5]:
-                line = f"{log}"
-                print(human_readable(line))
+                print(human_readable(log))
 
 
 if __name__ == "__main__":

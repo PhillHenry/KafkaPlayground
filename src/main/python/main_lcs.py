@@ -59,19 +59,21 @@ def write_to_file(f,
         bin = log_to_index[log]
 
         query = np.unpackbits(np.array([bin], dtype='>i8').view(np.uint8))[-VEC_SIZE:]
-        candidates = search_nearby_bins(query, {last_bin: []}, search_radius=3)
+        if last_bin != -1:
+            candidates = search_nearby_bins(query, {last_bin: []}, search_radius=3)
+        else:
+            candidates = {}
         # print(f"candidates = {candidates}")
-        if not any([x in line.lower() for x in ignoring]):
-            x = f"{line}"
-            if last_bin == bin or len(candidates) > 0:
-                x = f"{BColors.DARKGRAY}{x}"
-            else:
-                no_dupe_count += 1
-                x = f"{BColors.BOLD}{BColors.RED}{x}{BColors.UNBOLD}"
-            x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
-            print(x)
-            f.write(f"{x}\n")
-            last_bin = bin
+        x = f"{line}"
+        if last_bin == bin or len(candidates) > 0:
+            x = f"{BColors.DARKGRAY}{x}"
+        else:
+            no_dupe_count += 1
+            x = f"{BColors.BOLD}{BColors.RED}{x}{BColors.UNBOLD}"
+        x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
+        print(x)
+        f.write(f"{x}\n")
+        last_bin = bin
     print(f"{BColors.HEADER}{no_dupe_count} when de-duped")
 
 
