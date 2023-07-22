@@ -63,7 +63,7 @@ def average_entropy_of(docs: [],
     return [h / (len(d)) for h, d in zip(entropies, docs)]
 
 
-def frequencies(docs, shingles, delimiter=" ", ignore_words=[]):
+def frequencies(docs, shingles, delimiter=" ", ignore_words=[]) -> dict:
     doc_freq = defaultdict(int)
     for doc in docs:
         words = to_shingles(doc, shingles, split_on=delimiter, ignore_words=ignore_words)
@@ -88,11 +88,11 @@ def clean(log: LogLine) -> str:
 
 
 def clean_line(line: str) -> str:
-    camel_expanded = [w.strip().lower() for w in camel_case_split(line)]
-    no_delimiters = delimiting(" ".join(camel_expanded))
-    words = no_delimiters.split(" ")
+    no_delimiters = delimiting(line)
+    words = [" ".join([x.strip().lower() for x in camel_case_split(w)]) for w in no_delimiters.split(" ")]
     words = remove_timings(words)
     words = remove_pure_numbers(words)
+    words = [w for w in words if len(w) > 0]
     return " ".join(words).strip()
 
 
@@ -139,7 +139,7 @@ def kullback_liebler(docs: [str], ignore_words: [str], ps: dict, qs: dict) -> di
 def highest_entropy_words(docs: [str], char_freq: dict, shingles: set, penalty: float) -> [str]:
     word_score = sorted_word_average_entropy(docs, char_freq, shingles, penalty)
     max_score = word_score[-1][1]
-    top = [w for w, s in word_score if s > max_score / 2]
+    top = [w for w, s in word_score if s > max_score / 2.2]
     # top = [w for w, _ in word_score][-18:]  # TODO this is somewhat arbitrary...
     return top
 

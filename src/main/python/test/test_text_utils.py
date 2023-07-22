@@ -1,3 +1,5 @@
+import string
+
 from text_utils import frequencies, camel_case_split, remove_timings, clean_line
 
 
@@ -55,3 +57,13 @@ def test_camel_case_split_does_not_split_uuids():
 
 def test_camel_case_split_no_number_split():
     assert len(camel_case_split("transactionId1688479976915")) == 1
+
+
+def test_clean_line():
+    result = clean_line("[Transaction State Manager 1]: No cached transaction metadata found for __transaction_state-22 during become-follower transition (kafka.coordinator.transaction.TransactionStateManager)")
+    print(result)
+    assert result.lower() == result
+    for char in result:
+        assert char not in string.punctuation
+        assert not char.isdigit()
+    assert "TransactionStateManager".lower() not in result.split(" ")
