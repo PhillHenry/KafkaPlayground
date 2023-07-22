@@ -72,30 +72,16 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     second_docs = list(map(clean, second_logs))
     print(f"Number of lines = {len(first_docs)}")
 
-    english = read_plain_file(words_file)
-    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
-    ignore_words = ignore_words + words_to_ignore_in(first_docs + second_docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+    ignore_words = ignore_words + high_entropy_words(first_docs + second_docs, words_file)
 
     min_size = 4
     first_word_count = frequencies(first_docs, WORD_SHINGLES, ignore_words=ignore_words, min_size=min_size)
     second_word_count = frequencies(second_docs, WORD_SHINGLES, ignore_words=ignore_words, min_size=min_size)
 
-    all_words = first_word_count.copy()
-    for word, count in second_word_count.items():
-        if word in all_words:
-            all_words[word] = all_words[word] + second_word_count[word]
-        else:
-            all_words[word] = second_word_count[word]
-    all_words = {w: c for w, c in all_words.items() if w in first_word_count.keys() and w in second_word_count.keys()}
-    print(
-        f"top words: {[w for w, c in sorted(all_words.items(), key=lambda x: -x[1])][:10]}")
-    words = list(all_words.keys())
-    with open("/tmp/words.txt", "w") as f:
-        for word in sorted(words):
-            f.write(f"{word}\n")
+    words = merge_words(first_word_count, second_word_count)
 
     word_indices = {k: i for i, k in enumerate(words)}
-    print(f"Number of words = {len(words)}")
+
     random_vectors = generate_random_vectors(len(words), VEC_SIZE)
     first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_logs, first_word_count, random_vectors,
                                                      word_indices, ignore_words)
@@ -104,6 +90,32 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
                                                        word_indices,
                                                        ignore_words)
     return first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, first_ignore + second_ignore
+
+
+def merge_words(first_word_count: dict, second_word_count: dict) -> []:
+    all_words = first_word_count.copy()
+    for word, count in second_word_count.items():
+        if word in all_words:
+            all_words[word] = all_words[word] + second_word_count[word]
+        else:
+            all_words[word] = second_word_count[word]
+    all_words = {w: c for w, c in all_words.items() if
+                 w in first_word_count.keys() and w in second_word_count.keys()}
+    print(
+        f"top words: {[w for w, c in sorted(all_words.items(), key=lambda x: -x[1])][:10]}")
+    words = list(all_words.keys())
+    print(f"Number of words = {len(words)}")
+    with open("/tmp/words.txt", "w") as f:
+        for word in sorted(words):
+            f.write(f"{word}\n")
+    return words
+
+
+def high_entropy_words(docs: [str], words_file: str) -> [str]:
+    english = read_plain_file(words_file)
+    char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
+    high_entropy = words_to_ignore_in(docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
+    return high_entropy
 
 
 def make_lsh_bins(docs: [LogLine],

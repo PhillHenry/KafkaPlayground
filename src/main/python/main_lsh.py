@@ -8,7 +8,7 @@ from text_utils import clean, lsh_bin_lines
 from vectorizing import generate_random_vectors, to_tf_idf_vectors, lsh_projection
 
 
-def do_lsh(filename: str, n_vectors: int):
+def do_lsh_using_tf_idf(filename: str, n_vectors: int):
     """
     See http://ethen8181.github.io/machine-learning/recsys/content_based/lsh_text.html
     :param filename: line delimited text file
@@ -44,5 +44,5 @@ def compare(bin_indices: np.ndarray,
 
 
 if __name__ == "__main__":
-    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(sys.argv[1], 8)
+    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh_using_tf_idf(sys.argv[1], 8)
     compare(bin_indices, log_lines, sys.argv[2])

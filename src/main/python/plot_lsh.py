@@ -2,7 +2,7 @@ import sys
 
 import matplotlib.pyplot as plt
 
-from main_lsh import do_lsh
+from main_lsh import do_lsh_using_tf_idf
 
 
 def do_plot(log_index: []):
@@ -22,7 +22,7 @@ def plot_timeseries(log_index: [], machine: str, colour: str):
 
 
 def timeseries(input_file: str):
-    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh(input_file, 8)
+    table, random_vectors, bin_indices, bin_indices_bits, log_lines = do_lsh_using_tf_idf(input_file, 8)
     do_plot(list(zip(log_lines, bin_indices)))
 
 
