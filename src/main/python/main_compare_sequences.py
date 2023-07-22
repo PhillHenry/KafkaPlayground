@@ -9,7 +9,7 @@ from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
 from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf, reduce_dimension
 
-WORD_SHINGLES = {x for x in range(30) if x > 3}
+WORD_SHINGLES = {x for x in range(30) if x > 1}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, 4, 5}
 VEC_SIZE = 24
@@ -70,7 +70,6 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     first_docs = list(map(clean, first_logs))
     second_logs = read_file(second_file)
     second_docs = list(map(clean, second_logs))
-    print(f"Number of lines = {len(first_docs)}")
 
     ignore_words = ignore_words + high_entropy_words(first_docs + second_docs, words_file)
 
@@ -85,10 +84,12 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     random_vectors = generate_random_vectors(len(words), VEC_SIZE)
     first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_logs, first_word_count, random_vectors,
                                                      word_indices, ignore_words)
+    save_hashes(first_hash_to_logs, "first")
     second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_logs, second_word_count,
                                                        random_vectors,
                                                        word_indices,
                                                        ignore_words)
+    save_hashes(second_hash_to_logs, "second")
     return first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, first_ignore + second_ignore
 
 
@@ -130,6 +131,14 @@ def make_lsh_bins(docs: [LogLine],
     bin_indices, bin_indices_bits = lsh_projection(df, random_vectors)
     hash_to_logs = lsh_bin_logs(bin_indices, lines)
     return hash_to_logs, ignore_words
+
+
+def save_hashes(hash_to_logs: dict, label: str):
+    with open(f"/tmp/hash_to_logs_{label}.txt", "w") as f:
+        for bin, logs in sorted(hash_to_logs.items(), key=lambda x: -len(x[1])):
+            f.write(f"=== {bin} ===\n")
+            for log in logs:
+                f.write(f"{human_readable(log)}\n")
 
 
 def print_bins(hash_to_logs):

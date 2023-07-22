@@ -14,6 +14,7 @@ CONTEXT_IGNORE_WORDS = ["apache", "kafka", "org", "bitnami"]
 
 
 def to_logs(hash_to_logs: dict, machine: str) -> [int]:
+    hash_to_logs = ignore_commons(hash_to_logs)
     log_bins = log_to_index(hash_to_logs)
     log_bins = sorted(log_bins.items(), key=lambda x: (x[0].thread, x[0].timestamp))
     xs = list(reversed([bin for log, bin in log_bins if log.machine == machine])) #[:slice]
@@ -77,6 +78,10 @@ def write_to_file(f,
     print(f"{BColors.HEADER}{no_dupe_count} when de-duped")
 
 
+def ignore_commons(hash_to_logs: dict) -> dict:
+    return {k: v for k, v in hash_to_logs.items() if len(v) <= 10}
+
+
 def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> [int]:
     m = lcs(to_logs(first_hash_to_logs, machine),
             to_logs(second_hash_to_logs, machine))
@@ -96,7 +101,7 @@ def compare_lcs(first_file, second_file, english_file):
     # Vote request VoteRequestData(clusterId='AQIDBAUGBwgJCgsMDQ4PEA', ...
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
         first_file, second_file, english_file, CONTEXT_IGNORE_WORDS)
-    machine = "kafka1:"
+    machine = "kafka3:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
     first_log_to_index = log_to_index(first_hash_to_logs)
