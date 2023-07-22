@@ -12,6 +12,8 @@ def do_plot(log_index: []):
     plot_timeseries(log_index, "kafka3:", "red")
     plot_timeseries(log_index, "kafka2:", "cyan")
     plot_timeseries(log_index, "kafka1:", "green")
+    plt.xlabel("Time")
+    plt.ylabel("Bin")
     plt.legend()
 
 
@@ -32,4 +34,5 @@ if __name__ == "__main__":
     file = filename[filename.rfind("/")+1:]
     print(f"Saving {file}")
     plt.savefig(f"/tmp/all_{file}.pdf")
+    plt.title(file)
     plt.show()
