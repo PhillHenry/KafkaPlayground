@@ -30,19 +30,19 @@ def log_to_index(index_to_log: dict) -> dict:
     return log_index
 
 
-def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label: str):
+def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label: str, offset: int, mappings: dict):
     logs = logs[:1000]
     next_index = 0
-    mappings = dict()
     ys = []
     for log in logs:
         index = log_index[log]
         if index in mappings:
-            ys.append(mappings[index])
+            y = mappings[index]
         else:
-            ys.append(next_index)
+            y = next_index
             mappings[index] = next_index
             next_index += 1
+        ys.append((2 * y) + offset)
     plt.scatter(range(len(logs)), ys, s=1, c=colour, label=f"{machine} {label}")
     return ys
 
@@ -57,9 +57,10 @@ def information(words_file: str, first: str, second: str):
     fig, ax = plt.subplots(1, 1)
     fig = plt.figure(figsize=(16, 6))
     machine = "kafka1:"
-    first_ys = plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red", "first run")
+    mappings = dict()
+    first_ys = plot_line(log_to_index(first_hash_to_logs), first_lines, machine, "red", "first run", 0, mappings)
     second_ys = plot_line(log_to_index(second_hash_to_logs), second_lines, machine, "blue",
-                          "second run")
+                          "second run", 1, mappings)
     plt.legend()
     plt.savefig(f"/tmp/one_hot_{machine}.pdf")
     plt.show()
