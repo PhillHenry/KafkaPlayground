@@ -4,14 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from kafka_log_parser import read_file, LogLine, read_plain_file
+from rendering import human_readable
 from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
 from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf, reduce_dimension
 
-WORD_SHINGLES = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
+WORD_SHINGLES = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
 WORD_PENALTY = 1e-2
 CHAR_SHINGLES = {2, 3, 4}
-VEC_SIZE = 14
+VEC_SIZE = 24
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -119,12 +120,12 @@ def make_lsh_bins(docs: [LogLine],
 def print_bins(hash_to_logs):
     print(len(hash_to_logs))
     for hash_code, logs in hash_to_logs.items():
-        delimiter = f"==== {hash_code} ===="
-        print(delimiter)
         if len(logs) > 5:
+            delimiter = f"==== {hash_code} ===="
+            print(delimiter)
             for log in logs[:5]:
                 line = f"{log}"
-                print(line)
+                print(human_readable(line))
 
 
 if __name__ == "__main__":
