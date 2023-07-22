@@ -68,8 +68,8 @@ def write_to_file(f,
             x = f"{line}"
             if last_bin == bin or len(candidates) > 0:
                 x = f"{BColors.DARKGRAY}{x}"
-                no_dupe_count += 1
             else:
+                no_dupe_count += 1
                 x = f"{BColors.BOLD}{BColors.RED}{x}{BColors.UNBOLD}"
             x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
             print(x)
