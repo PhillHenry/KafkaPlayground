@@ -3,6 +3,8 @@ from collections import defaultdict
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import math
+
+from kafka_log_parser import LogLine
 from text_utils import to_shingles
 
 
@@ -67,3 +69,17 @@ def tf_idf(docs: [str], word_indices: dict, word_count: dict, ignore_words: [str
                 m[i, index] = f * math.log(n / d)
     return m
 
+
+def reduce_dimension(log_index: dict, logs: [LogLine], mappings: dict) -> [int]:
+    next_index = 0
+    ys = []
+    for log in logs:
+        index = log_index[log]
+        if index in mappings:
+            y = mappings[index]
+        else:
+            y = next_index
+            mappings[index] = next_index
+            next_index += 1
+        ys.append(y)
+    return ys

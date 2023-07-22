@@ -6,7 +6,7 @@ import numpy as np
 from kafka_log_parser import read_file, LogLine, read_plain_file
 from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
-from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf
+from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf, reduce_dimension
 
 WORD_SHINGLES = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
 WORD_PENALTY = 1e-2
@@ -32,18 +32,8 @@ def log_to_index(index_to_log: dict) -> dict:
 
 def plot_line(log_index: dict, logs: [LogLine], machine: str, colour: str, label: str, offset: int, mappings: dict):
     logs = logs[:1000]
-    next_index = 0
-    ys = []
-    for log in logs:
-        index = log_index[log]
-        if index in mappings:
-            y = mappings[index]
-        else:
-            y = next_index
-            mappings[index] = next_index
-            next_index += 1
-        ys.append((2 * y) + offset)
-    plt.scatter(range(len(logs)), ys, s=1, c=colour, label=f"{machine} {label}")
+    ys = reduce_dimension(log_index, logs, mappings)
+    plt.scatter(range(len(logs)), [(2 * y) + offset for y in ys], s=1, c=colour, label=f"{machine} {label}")
     return ys
 
 
@@ -75,10 +65,10 @@ def is_within(word: str, ignore_words: [str]) -> bool:
 
 
 def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [str]):
-    first_lines = read_file(first_file)
-    first_docs = list(map(clean, first_lines))
-    second_lines = read_file(second_file)
-    second_docs = list(map(clean, second_lines))
+    first_logs = read_file(first_file)
+    first_docs = list(map(clean, first_logs))
+    second_logs = read_file(second_file)
+    second_docs = list(map(clean, second_logs))
     print(f"Number of lines = {len(first_docs)}")
 
     english = read_plain_file(words_file)
@@ -103,13 +93,13 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
     random_vectors = generate_random_vectors(len(words), VEC_SIZE)
-    first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_lines, first_word_count, random_vectors,
+    first_hash_to_logs, first_ignore = make_lsh_bins(first_docs, first_logs, first_word_count, random_vectors,
                                                      word_indices, ignore_words)
-    second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_lines, second_word_count,
+    second_hash_to_logs, second_ignore = make_lsh_bins(second_docs, second_logs, second_word_count,
                                                        random_vectors,
                                                        word_indices,
                                                        ignore_words)
-    return first_hash_to_logs, first_lines, second_hash_to_logs, second_lines, first_ignore + second_ignore
+    return first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, first_ignore + second_ignore
 
 
 def make_lsh_bins(docs: [LogLine],
