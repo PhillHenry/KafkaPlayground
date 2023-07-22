@@ -16,13 +16,13 @@ def camel_case_split(identifier: str) -> [str]:
         return [identifier]
 
 
-def to_shingles(doc: str, ngrams: set[int], split_on=" ", ignore_words=[]):
+def to_shingles(doc: str, ngrams: set[int], split_on=" ", ignore_words=[], min_size=0):
     if split_on is None:
         tokens = doc
         split_on = ""
     else:
         tokens = doc.split(split_on)
-    words = [word for word in tokens if len(word) > 0 and word not in ignore_words]
+    words = [word for word in tokens if len(word) >= min_size and word not in ignore_words]
     shingles = []
     for ngram in ngrams:
         for start in range(len(words) - ngram + 1):
@@ -63,10 +63,10 @@ def average_entropy_of(docs: [],
     return [h / (len(d)) for h, d in zip(entropies, docs)]
 
 
-def frequencies(docs, shingles, delimiter=" ", ignore_words=[]) -> dict:
+def frequencies(docs, shingles, delimiter=" ", ignore_words=[], min_size=0) -> dict:
     doc_freq = defaultdict(int)
     for doc in docs:
-        words = to_shingles(doc, shingles, split_on=delimiter, ignore_words=ignore_words)
+        words = to_shingles(doc, shingles, split_on=delimiter, ignore_words=ignore_words, min_size=min_size)
         for word in words:
             if len(word) > 0:
                 doc_freq[word] = doc_freq[word] + 1

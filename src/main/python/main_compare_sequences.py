@@ -8,10 +8,10 @@ from text_utils import clean, \
     frequencies, lsh_bin_logs, word_shingle_probabilities_from, words_to_ignore_in
 from vectorizing import generate_random_vectors, lsh_projection, one_hot, tf_idf
 
-WORD_SHINGLES = {2, 3}
+WORD_SHINGLES = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
 WORD_PENALTY = 1e-2
-CHAR_SHINGLES = {2, 3, }
-VEC_SIZE = 10
+CHAR_SHINGLES = {2, 3, 4}
+VEC_SIZE = 14
 
 
 def to_log_index_tuples(x: dict) -> []:
@@ -74,14 +74,20 @@ def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [s
     char_freq = word_shingle_probabilities_from(english, CHAR_SHINGLES)
     ignore_words = ignore_words + words_to_ignore_in(first_docs + second_docs, char_freq, CHAR_SHINGLES, WORD_PENALTY)
 
-    first_word_count = frequencies(first_docs, WORD_SHINGLES, ignore_words=ignore_words)
-    second_word_count = frequencies(second_docs, WORD_SHINGLES, ignore_words=ignore_words)
+    min_size = 4
+    first_word_count = frequencies(first_docs, WORD_SHINGLES, ignore_words=ignore_words, min_size=min_size)
+    second_word_count = frequencies(second_docs, WORD_SHINGLES, ignore_words=ignore_words, min_size=min_size)
+
+    all_words = first_word_count.copy()
+    for word, count in second_word_count.items():
+        if word in all_words:
+            all_words[word] = all_words[word] + second_word_count[word]
+        else:
+            all_words[word] = second_word_count[word]
+    all_words = {w: c for w, c in all_words.items()}  # if 1 < c < len(first_docs) // 100}
     print(
-        f"top words: {[w for w, c in sorted(first_word_count.items(), key=lambda x: -x[1])][:10]}")
-    all_words = set(list(first_word_count.keys()) + list(second_word_count.keys()))
-    words = {w for w in all_words if w in first_word_count.keys() and w in second_word_count.keys()}
-
-
+        f"top words: {[w for w, c in sorted(all_words.items(), key=lambda x: -x[1])][:10]}")
+    words = list(all_words.keys())
 
     word_indices = {k: i for i, k in enumerate(words)}
     print(f"Number of words = {len(words)}")
