@@ -48,10 +48,10 @@ def print_differences(first_logs: [LogLine],
     with open(f"/tmp/{machine}_second_{label}_raw.log", "w") as f:
         for log in second_logs:
             f.write(f"{human_readable(log)}\n")
-    # with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
-    #     print("\nSecond deltas")
-    #     f.write("\n")
-    #     write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
+    with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
+        print("\nSecond deltas")
+        f.write("\n")
+        write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
 
 
 def write_to_file(f,
@@ -95,12 +95,12 @@ def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine
     print(f"{m[0, 0]} out of {min(m.shape[0], m.shape[1])} in order")
     # plot_heatmap(m)
     size = 20
-    np.set_printoptions(linewidth=sys.maxsize)
-    np.set_printoptions(threshold=size+1)
+    np.set_printoptions(threshold=size+1, precision=3)
     for i in range(size):
         print(m[i][:size])
-    for i in range(size):
-        print(m[size-i:][:size])
+    print()
+    for i in range(size, 0, -1):
+        print(m[m.shape[0]-i][-size:])
     return out_of_order(m)
 
 
@@ -126,8 +126,8 @@ def compare_lcs(first_file, second_file, english_file):
 
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
-    # compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
-    #                              second_log_to_index, second_logs)
+    compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
+                                 second_log_to_index, second_logs)
 
     # plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, machine, second_delta,
     #                              second_log_to_index, second_logs)
@@ -148,6 +148,7 @@ def plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, ma
 
 def compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
                                  second_log_to_index, second_logs):
+    print(f"{BColors.RED}")
     for x in first_delta:
         first = first_logs[x]
         second = second_logs[x]
@@ -155,11 +156,9 @@ def compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ig
         second_hash = second_log_to_index[second]
         first_line = human_readable(first)
         second_line = human_readable(second)
-        if first_hash != second_hash and not any(
-                [x in first_line.lower() for x in ignored_words]) and not any(
-                [x in second_line.lower() for x in ignored_words]):
-            print("{:<10} {:}".format(first_hash, first_line))
-            print("{:<10} {:}".format(second_hash, second_line))
+        if first_hash != second_hash:
+            print("{:<10} {:<10} {:}".format(f"{BColors.OKGREEN}{x}:", f"{BColors.OKCYAN}{first_hash}", f"{BColors.RED}{first_line}"))
+            print("{:<10} {:<10} {:}".format(f"{BColors.OKGREEN}{x}:", f"{BColors.OKCYAN}{second_hash}", f"{BColors.OKBLUE}{second_line}"))
             print("\n")
 
 
