@@ -24,8 +24,8 @@ def test_lcs_sub_seq():
 def test_out_of_order():
     xs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     ys = [0, 2, 1, 4, 3, 6, 5, 8, 7, 9]
-    m = lcs(xs, ys)
+    m = lcs(ys, xs)
     print(f"\n{m}")
     assert m.shape == (len(xs), len(ys))
     assert m[0][0] == 5
-    assert out_of_order(m) == [2, 4, 6, 8]
+    assert out_of_order(m) == [x + 1 for x in [2, 4, 6, 8]]  # +1 because it's the 1-based transition

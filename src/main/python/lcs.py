@@ -37,10 +37,10 @@ def out_of_order(m: np.ndarray) -> [int]:
         elif m[i, j + 1] < m[i + 1, j]:
             j += 1
         else:
-            deltas.add(i)
             if i <= max_i:
                 i += 1
             if j <= max_j:
                 j += 1
+            deltas.add(i)
     print(f"Number of deltas {len(deltas)}")
     return list(sorted(list(deltas)))

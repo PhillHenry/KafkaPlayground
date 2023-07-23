@@ -10,7 +10,7 @@ from main_compare_sequences import sequences_of, log_to_index, VEC_SIZE
 from rendering import human_readable, BColors
 from text_utils import delimiting
 
-CONTEXT_IGNORE_WORDS = ["apache", "kafka", "org", "bitnami"]
+CONTEXT_IGNORE_WORDS = ["apache", "org", "bitnami"]
 
 
 def to_logs(hash_to_logs: dict, machine: str) -> [int]:
@@ -38,9 +38,16 @@ def print_differences(first_logs: [LogLine],
     first_logs = filter(first_logs, machine)
     second_logs = filter(second_logs, machine)
     print(f"Number of log lines is {len(first_logs)} and {len(second_logs)}")
-    with open(f"/tmp/{delimiting(machine, '')}_first_{label}.log", "w") as f:
+    machine = delimiting(machine, '')
+    with open(f"/tmp/{machine}_first_{label}.log", "w") as f:
         print("First deltas")
         write_to_file(f, first_delta, first_logs, ignoring, first_log_to_index)
+    with open(f"/tmp/{machine}_first_{label}_raw.log", "w") as f:
+        for log in first_logs:
+            f.write(f"{human_readable(log)}\n")
+    with open(f"/tmp/{machine}_second_{label}_raw.log", "w") as f:
+        for log in second_logs:
+            f.write(f"{human_readable(log)}\n")
     # with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
     #     print("\nSecond deltas")
     #     f.write("\n")
@@ -75,7 +82,7 @@ def write_to_file(f,
         print(x)
         f.write(f"{x}\n")
         last_bin = bin
-    print(f"{BColors.HEADER}{no_dupe_count} when de-duped")
+    print(f"{BColors.HEADER}{no_dupe_count}/{len(index)} non duped out of a total of {len(log_lines)} lines")
 
 
 def ignore_commons(hash_to_logs: dict) -> dict:
@@ -87,6 +94,13 @@ def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine
             to_logs(second_hash_to_logs, machine))
     print(f"{m[0, 0]} out of {min(m.shape[0], m.shape[1])} in order")
     # plot_heatmap(m)
+    size = 20
+    np.set_printoptions(linewidth=sys.maxsize)
+    np.set_printoptions(threshold=size+1)
+    for i in range(size):
+        print(m[i][:size])
+    for i in range(size):
+        print(m[size-i:][:size])
     return out_of_order(m)
 
 
@@ -101,7 +115,7 @@ def compare_lcs(first_file, second_file, english_file):
     # Vote request VoteRequestData(clusterId='AQIDBAUGBwgJCgsMDQ4PEA', ...
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
         first_file, second_file, english_file, CONTEXT_IGNORE_WORDS)
-    machine = "kafka3:"
+    machine = "kafka1:"
     first_delta = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
     second_delta = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
     first_log_to_index = log_to_index(first_hash_to_logs)
