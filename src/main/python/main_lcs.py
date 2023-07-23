@@ -155,14 +155,17 @@ def compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ig
         second_hash, second_line = has_and_line(second_log_to_index, second_logs, second_index)
         first_index_str = f"{BColors.OKGREEN}{first_index}"
         second_index_str = f"{BColors.OKGREEN}{second_index}"
+        first_color = f"{BColors.RED}"
+        second_color = f"{BColors.OKBLUE}"
         if first_hash == second_hash:
-            first_index = second_index = index - 1
-            first_hash, first_line = has_and_line(first_log_to_index, first_logs, first_index)
+            second_index = index - 1
             second_hash, second_line = has_and_line(second_log_to_index, second_logs, second_index)
-            first_index_str = first_index_str + f" -> {first_index}"
             second_index_str = second_index_str + f" -> {second_index}"
-        print("{:<20}: {:<10} {:}".format(first_index_str, f"{BColors.OKCYAN}{first_hash}", f"{BColors.RED}{first_line}"))
-        print("{:<15}: {:<10} {:}".format(second_index_str, f"{BColors.OKCYAN}{second_hash}", f"{BColors.OKBLUE}{second_line}"))
+            if first_hash == second_hash:
+                second_color = f"{BColors.DARKGRAY}"
+                first_color = f"{BColors.DARKGRAY}"
+        print("{:<20}: {:<10} {:}".format(first_index_str, f"{BColors.OKCYAN}{first_hash}", f"{first_color}{first_line}"))
+        print("{:<20}: {:<10} {:}".format(second_index_str, f"{BColors.OKCYAN}{second_hash}", f"{second_color}{second_line}"))
         print("\n")
 
 
