@@ -48,10 +48,10 @@ def print_differences(first_logs: [LogLine],
     with open(f"/tmp/{machine}_second_{label}_raw.log", "w") as f:
         for log in second_logs:
             f.write(f"{human_readable(log)}\n")
-    with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
-        print("\nSecond deltas")
-        f.write("\n")
-        write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
+    # with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
+    #     print("\nSecond deltas")
+    #     f.write("\n")
+    #     write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
 
 
 def write_to_file(f,
@@ -149,17 +149,28 @@ def plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, ma
 def compare_discontinuous_points(first_delta, first_log_to_index, first_logs, ignored_words,
                                  second_log_to_index, second_logs):
     print(f"{BColors.RED}")
-    for x in first_delta:
-        first = first_logs[x]
-        second = second_logs[x]
-        first_hash = first_log_to_index[first]
-        second_hash = second_log_to_index[second]
-        first_line = human_readable(first)
-        second_line = human_readable(second)
-        if first_hash != second_hash:
-            print("{:<10} {:<10} {:}".format(f"{BColors.OKGREEN}{x}:", f"{BColors.OKCYAN}{first_hash}", f"{BColors.RED}{first_line}"))
-            print("{:<10} {:<10} {:}".format(f"{BColors.OKGREEN}{x}:", f"{BColors.OKCYAN}{second_hash}", f"{BColors.OKBLUE}{second_line}"))
-            print("\n")
+    for index in first_delta:
+        first_index = second_index = index
+        first_hash, first_line = has_and_line(first_log_to_index, first_logs, first_index)
+        second_hash, second_line = has_and_line(second_log_to_index, second_logs, second_index)
+        first_index_str = f"{BColors.OKGREEN}{first_index}"
+        second_index_str = f"{BColors.OKGREEN}{second_index}"
+        if first_hash == second_hash:
+            first_index = second_index = index - 1
+            first_hash, first_line = has_and_line(first_log_to_index, first_logs, first_index)
+            second_hash, second_line = has_and_line(second_log_to_index, second_logs, second_index)
+            first_index_str = first_index_str + f" -> {first_index}"
+            second_index_str = second_index_str + f" -> {second_index}"
+        print("{:<20}: {:<10} {:}".format(first_index_str, f"{BColors.OKCYAN}{first_hash}", f"{BColors.RED}{first_line}"))
+        print("{:<15}: {:<10} {:}".format(second_index_str, f"{BColors.OKCYAN}{second_hash}", f"{BColors.OKBLUE}{second_line}"))
+        print("\n")
+
+
+def has_and_line(log_to_index: dict, logs: [str], index: int):
+    first = logs[index]
+    first_hash = log_to_index[first]
+    first_line = human_readable(first)
+    return first_hash, first_line
 
 
 if __name__ == "__main__":
