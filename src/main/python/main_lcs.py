@@ -28,12 +28,11 @@ def filter(log_lines: [LogLine], machine: str) -> [LogLine]:
 def print_differences(first_logs: [LogLine],
                       first_delta: [int],
                       second_logs: [LogLine],
-                      second_delta: [int],
                       machine: str,
                       label: str,
                       ignoring: [str],
                       first_log_to_index: dict,
-                      second_log_to_index: dict):
+                      hash_to_logs: dict):
     print(f"{BColors.RED}number of {label}: {len(first_delta)} ")
     if len(first_delta) > 0:
         first_logs = filter(first_logs, machine)
@@ -42,7 +41,7 @@ def print_differences(first_logs: [LogLine],
         machine = delimiting(machine, '')
         with open(f"/tmp/{machine}_first_{label}.log", "w") as f:
             print("First deltas")
-            write_to_file(f, first_delta, first_logs, ignoring, first_log_to_index)
+            write_to_file(f, first_delta, first_logs, ignoring, first_log_to_index, hash_to_logs)
         with open(f"/tmp/{machine}_first_{label}_raw.log", "w") as f:
             for log in first_logs:
                 f.write(f"{human_readable(log)}\n")
@@ -59,9 +58,11 @@ def write_to_file(f,
                   index: [int],
                   log_lines: [LogLine],
                   ignoring: [str],
-                  log_to_index: dict):
+                  log_to_index: dict,
+                  hash_to_logs: dict):
     last_bin = -1
     no_dupe_count = 0
+    last_blank = False
     for i in index:
         log = log_lines[i]
         line = human_readable(log)
@@ -80,7 +81,15 @@ def write_to_file(f,
             no_dupe_count += 1
             x = f"{BColors.BOLD}{BColors.RED}{x}{BColors.UNBOLD}"
         x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
-        print(x)
+        # Squelch
+        count = len(hash_to_logs[log_to_index[log]])
+        if count < 6:
+            print(x)
+            last_blank = False
+        else:
+            if not last_blank:
+                print(f"{BColors.DARKGRAY}...")
+            last_blank = True
         f.write(f"{x}\n")
         last_bin = bin
     print(f"{BColors.HEADER}{no_dupe_count}/{len(index)} non duped out of a total of {len(log_lines)} lines")
@@ -129,7 +138,7 @@ def compare_lcs(first_file, second_file, english_file):
     second_delta, second_missing, second_surplus = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
     first_log_to_index = log_to_index(first_hash_to_logs)
     second_log_to_index = log_to_index(second_hash_to_logs)
-    print_differences(first_logs, first_delta, second_logs, second_delta, machine, "all", [], first_log_to_index, second_log_to_index)
+    print_differences(first_logs, first_delta, second_logs, machine, "all", [], first_log_to_index, first_hash_to_logs)
     # print_differences(first_logs, first_missing, second_logs, second_missing, machine, "missing", [], first_log_to_index, second_log_to_index)
     # print_differences(first_logs, first_surplus, second_logs, second_surplus, machine, "surplus", [], first_log_to_index, second_log_to_index)
     print(f"Number of bins in first  = {len(first_hash_to_logs)}")
