@@ -55,6 +55,6 @@ def read_file(filename) -> [LogLine]:
             except Exception:
                 print(f"Could not parse line:\n{line}")
                 failures += 1
-    print(f"Was unable to process a total of {failures} lines")
+    print(f"Was unable to process a total of {failures} lines out of {len(log_lines)}")
     return sorted(log_lines, key=lambda log: (log.timestamp, log.payload_str))  # logs can be out of sequence. payload_str for tie breakers
 
