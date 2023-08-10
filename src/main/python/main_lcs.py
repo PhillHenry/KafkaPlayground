@@ -62,7 +62,9 @@ def write_to_file(f,
                   hash_to_logs: dict):
     last_bin = -1
     no_dupe_count = 0
-    last_blank = False
+    last_time = None
+    last_index = index[0]
+    last_line_contiguous = True
     for i in index:
         log = log_lines[i]
         line = human_readable(log)
@@ -83,15 +85,19 @@ def write_to_file(f,
         x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", x)
         # Squelch
         count = len(hash_to_logs[log_to_index[log]])
-        if count < 6:
+        if last_index + 1 != i:
+            if not last_line_contiguous:
+                print()
+            last_line_contiguous = False
+        if count < 6 and log.timestamp != last_time:
             print(x)
-            last_blank = False
         else:
-            if not last_blank:
-                print(f"{BColors.DARKGRAY}...")
-            last_blank = True
+            x = "{:<10}{}".format(f"{BColors.OKGREEN}{i}:", f"{BColors.LIGHTGRAY}{line}")
+            print(x)
         f.write(f"{x}\n")
         last_bin = bin
+        last_time = log.timestamp
+        last_index = i
     print(f"{BColors.HEADER}{no_dupe_count}/{len(index)} non duped out of a total of {len(log_lines)} lines")
 
 
@@ -105,7 +111,7 @@ def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine
     m = lcs(first_logs, second_logs)
     print(f"{m[0, 0]} out of {min(m.shape[0], m.shape[1])} in order")
     # plot_heatmap(m)
-    print_sample_of(m, 20)
+    # print_sample_of(m, 20)
     return out_of_order(m, to_ordered_by_timestamp_hash(first_log_to_hash), to_ordered_by_timestamp_hash(second_log_to_hash))
 
 
