@@ -48,10 +48,6 @@ def print_differences(first_logs: [LogLine],
         with open(f"/tmp/{machine}_second_{label}_raw.log", "w") as f:
             for log in second_logs:
                 f.write(f"{human_readable(log)}\n")
-        # with open(f"/tmp/{delimiting(machine, '')}_second_{label}.log", "w") as f:
-        #     print("\nSecond deltas")
-        #     f.write("\n")
-        #     write_to_file(f, second_delta, second_logs, ignoring, second_log_to_index)
 
 
 def write_to_file(f,
@@ -105,9 +101,9 @@ def ignore_commons(hash_to_logs: dict) -> dict:
     return {k: v for k, v in hash_to_logs.items() if len(v) <= 10}
 
 
-def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str) -> ([int], [int], [int]):
-    first_logs, first_log_to_hash = to_logs(first_hash_to_logs, machine)
-    second_logs, second_log_to_hash = to_logs(second_hash_to_logs, machine)
+def check_sequences(first_hash_to_logs: dict, second_hash_to_logs: dict, machine1: str, machine2: str) -> ([int], [int], [int]):
+    first_logs, first_log_to_hash = to_logs(first_hash_to_logs, machine1)
+    second_logs, second_log_to_hash = to_logs(second_hash_to_logs, machine2)
     m = lcs(first_logs, second_logs)
     print(f"{m[0, 0]} out of {min(m.shape[0], m.shape[1])} in order")
     # plot_heatmap(m)
@@ -139,18 +135,25 @@ def compare_lcs(first_file, second_file, english_file):
     # Vote request VoteRequestData(clusterId='AQIDBAUGBwgJCgsMDQ4PEA', ...
     first_hash_to_logs, first_logs, second_hash_to_logs, second_logs, ignored_words = sequences_of(
         first_file, second_file, english_file, CONTEXT_IGNORE_WORDS)
-    machine = "kafka1:"
-    first_delta, first_missing, first_surplus = check_sequences(first_hash_to_logs, second_hash_to_logs, machine)
-    second_delta, second_missing, second_surplus = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
+    machine1 = "kafka1:"
+    machine2 = "kafka3:"
+    first_delta, first_missing, first_surplus = check_sequences(first_hash_to_logs, second_hash_to_logs, machine1, machine2)
+
+    print_missing(first_hash_to_logs, second_hash_to_logs, machine1)
+    print_missing(second_hash_to_logs, first_hash_to_logs, machine2)
+
+    # second_delta, second_missing, second_surplus = check_sequences(second_hash_to_logs, first_hash_to_logs, machine)
     first_log_to_index = log_to_index(first_hash_to_logs)
     second_log_to_index = log_to_index(second_hash_to_logs)
-    print_differences(first_logs, first_delta, second_logs, machine, "all", [], first_log_to_index, first_hash_to_logs)
+    print_differences(first_logs, first_delta, second_logs, machine1, "all", [], first_log_to_index, first_hash_to_logs)
+    # print_differences(second_logs, second_delta, first_logs, machine, "all_second", [], second_log_to_index, second_hash_to_logs)
+
     # print_differences(first_logs, first_missing, second_logs, second_missing, machine, "missing", [], first_log_to_index, second_log_to_index)
     # print_differences(first_logs, first_surplus, second_logs, second_surplus, machine, "surplus", [], first_log_to_index, second_log_to_index)
     print(f"Number of bins in first  = {len(first_hash_to_logs)}")
     print(f"Number of bins in second = {len(second_hash_to_logs)}")
-    write_hashes("first", first_logs, first_log_to_index, machine)
-    write_hashes("second", second_logs, second_log_to_index, machine)
+    write_hashes("first", first_logs, first_log_to_index, machine1)
+    write_hashes("second", second_logs, second_log_to_index, machine2)
 
     # first_logs = filter(first_logs, machine)
     # second_logs = filter(second_logs, machine)
@@ -159,6 +162,26 @@ def compare_lcs(first_file, second_file, english_file):
 
     # plot_bins_of_discontinuities(first_delta, first_log_to_index, first_logs, machine, second_delta,
     #                              second_log_to_index, second_logs)
+
+
+def hash_to_logs_for(machine: str, hash_to_logs: dict):
+    hash_to_logs = {hash: [x for x in logs if x.machine == machine] for hash, logs in hash_to_logs.items()}
+    hash_to_logs = {hash: logs for hash, logs in hash_to_logs.items() if len(logs) > 0}
+    return hash_to_logs
+
+
+def print_missing(first_hash_to_logs: dict, second_hash_to_logs: dict, machine: str):
+    second_hash_to_logs = hash_to_logs_for(machine, second_hash_to_logs)
+    first_hash_to_logs = hash_to_logs_for(machine, first_hash_to_logs)
+    diff_hash = set(second_hash_to_logs) - set(first_hash_to_logs.keys())
+    print("\nLogs in second, not in first")
+    for hash in diff_hash:
+        logs = second_hash_to_logs[hash]
+        if len(logs) > 0:
+            for log in logs:
+                print(human_readable(log))
+            print()
+    print()
 
 
 def write_hashes(label: str, logs: [LogLine], logs_to_index: dict, machine :str):
