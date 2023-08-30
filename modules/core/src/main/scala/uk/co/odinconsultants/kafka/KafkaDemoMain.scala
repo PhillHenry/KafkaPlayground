@@ -118,9 +118,7 @@ object KafkaDemoMain extends IOApp.Simple {
       name:        String,
       dnsMappings: DnsMapping[String],
   ): StartRequest = {
-    val insidePort = hostPort.value + 10
     val outsidePort = hostPort.value + 20
-    val inside    = s"INSIDE://${name}:$insidePort"
     val outside   = s"OUTSIDE://localhost:$outsidePort"
     val plaintext = s"PLAINTEXT://${name}:$hostPort"
     StartRequest(
@@ -129,15 +127,15 @@ object KafkaDemoMain extends IOApp.Simple {
       List(
         "BITNAMI_DEBUG=true",
         "ALLOW_PLAINTEXT_LISTENER=yes",
-        s"KAFKA_CFG_ADVERTISED_LISTENERS=$plaintext,$inside,$outside",
-        s"KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=OUTSIDE:PLAINTEXT,INSIDE:PLAINTEXT,PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT",
-        s"KAFKA_CFG_LISTENERS=$plaintext,CONTROLLER://:$controllerPort,$inside,OUTSIDE://:$outsidePort",
+        s"KAFKA_CFG_ADVERTISED_LISTENERS=$plaintext,$outside",
+        s"KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=OUTSIDE:PLAINTEXT,PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT",
+        s"KAFKA_CFG_LISTENERS=$plaintext,CONTROLLER://:$controllerPort,OUTSIDE://:$outsidePort",
         s"KAFKA_KRAFT_CLUSTER_ID=$clusterId",
         s"BROKER_ID=$brokerId",
         s"KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=$quorum",
         s"KAFKA_CFG_NODE_ID=$brokerId",
       ),
-      List(hostPort.value -> hostPort.value, insidePort -> insidePort, outsidePort -> outsidePort),
+      List(hostPort.value -> hostPort.value, outsidePort -> outsidePort),
       dnsMappings,
       Some(name),
       Some(networkName),
