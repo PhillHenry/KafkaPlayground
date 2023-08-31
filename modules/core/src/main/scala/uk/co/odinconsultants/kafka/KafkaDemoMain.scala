@@ -11,7 +11,7 @@ import uk.co.odinconsultants.dreadnought.Flow.race
 import uk.co.odinconsultants.dreadnought.docker.*
 import uk.co.odinconsultants.dreadnought.docker.Algebra.toInterpret
 import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{client, createNetwork, interpret, interpreter, removeNetwork}
-import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{consume, produce, produceMessages}
+import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{consume, createCustomTopic, produce, produceMessages}
 import uk.co.odinconsultants.dreadnought.docker.Logging.{ioPrintln, verboseWaitFor}
 import uk.co.odinconsultants.dreadnought.docker.PopularContainers.startKafkaOnPort
 import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{startSlave, startSparkCluster, waitForMaster}
@@ -25,9 +25,11 @@ import scala.concurrent.duration.*
 import scala.util.Try
 import scala.concurrent.duration.*
 import org.apache.kafka.clients.admin.NewTopic
+
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import org.apache.kafka.clients.admin.AdminClient
+
 import java.util.concurrent.TimeUnit
 import org.apache.kafka.clients.admin.AdminClientConfig
 
@@ -63,7 +65,7 @@ object KafkaDemoMain extends IOApp.Simple {
       )
     _            <- kafkaStart.get.timeout(20.seconds)
     _            <- IO.println(s"About to create topic $TOPIC_NAME")
-    _            <- IO(createCustomTopic(TOPIC_NAME))
+    _            <- IO(createCustomTopic(TOPIC_NAME, Port.fromInt(kafkaPort.value + 20).get))
     _            <- IO.println("About to send messages...")
     _            <- sendMessages
     messageLatch <- Deferred[IO, String]
@@ -119,8 +121,8 @@ object KafkaDemoMain extends IOApp.Simple {
       dnsMappings: DnsMapping[String],
   ): StartRequest = {
     val outsidePort = hostPort.value + 20
-    val outside   = s"OUTSIDE://localhost:$outsidePort"
-    val plaintext = s"PLAINTEXT://${name}:$hostPort"
+    val outside     = s"OUTSIDE://localhost:$outsidePort"
+    val plaintext   = s"PLAINTEXT://${name}:$hostPort"
     StartRequest(
       ImageName("docker.io/bitnami/kafka:3.5"),
       Command("/opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh"),
@@ -173,39 +175,4 @@ object KafkaDemoMain extends IOApp.Simple {
     s.handleErrorWith(x => Stream.eval(IO(x.printStackTrace()))).compile.drain
   }
 
-  def createCustomTopic(
-      topic:             String,
-      topicConfig:       Map[String, String] = Map.empty,
-      partitions:        Int = 2,
-      replicationFactor: Int = 1,
-  ): Try[Unit] = {
-    println(s"Creating $topic")
-    val newTopic = new NewTopic(topic, partitions, replicationFactor.toShort)
-      .configs(topicConfig.asJava)
-
-    withAdminClient { adminClient =>
-      adminClient
-        .createTopics(Seq(newTopic).asJava)
-        .all
-        .get(4, TimeUnit.SECONDS)
-    }.map(x => println(s"Admin client result: $x"))
-  }
-  protected def withAdminClient[T](
-      body: AdminClient => T
-  ): Try[T] = {
-    val adminClientCloseTimeout: FiniteDuration = 2.seconds
-    val adminClient                             = AdminClient.create(
-      Map[String, Object](
-        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG       -> s"127.0.0.1:${kafkaPort.value + 20}",
-        AdminClientConfig.CLIENT_ID_CONFIG               -> "test-kafka-admin-client",
-        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG      -> "10000",
-        AdminClientConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG -> "10000",
-      ).asJava
-    )
-
-    val res = Try(body(adminClient))
-    adminClient.close(java.time.Duration.ofMillis(adminClientCloseTimeout.toMillis))
-
-    res
-  }
 }
