@@ -19,7 +19,7 @@ import uk.co.odinconsultants.dreadnought.docker.ZKKafkaMain.{kafkaEcosystem, sta
 import uk.co.odinconsultants.dreadnought.docker.ContainerId
 import fs2.kafka.{ConsumerSettings, ProducerRecords, ProducerSettings, *}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig, NewTopic}
-
+import uk.co.odinconsultants.dreadnought.docker.KafkaRaft
 import java.util.{Base64, UUID}
 import scala.concurrent.duration.*
 import scala.util.Try
@@ -37,9 +37,9 @@ object KafkaDemoMain extends IOApp.Simple {
 
   val TOPIC_NAME     = "test_topic"
   val kafkaPort      = port"9091"
-  val clusterId      = Base64.getEncoder.encodeToString((1 to 16).map(_.toByte).toArray)
+
   val networkName    = "my_network"
-  val controllerPort = "9098"
+
 
   /** TODO
     * Pull images
@@ -61,7 +61,7 @@ object KafkaDemoMain extends IOApp.Simple {
     containers   <-
       interpret(
         client,
-        startKafkas(loggers),
+        KafkaRaft.startKafkas(loggers, networkName),
       )
     _            <- kafkaStart.get.timeout(20.seconds)
     _            <- IO.println(s"About to create topic $TOPIC_NAME")
@@ -79,70 +79,6 @@ object KafkaDemoMain extends IOApp.Simple {
                     )
   } yield println(s"Started and stopped ${loggers.length} kafka brokers")
 
-  def startKafkas(
-      consoleColours: List[String => IO[Unit]]
-  ): Free[ManagerRequest, List[ContainerId]] = {
-    def kafkaName(i: Int): String = s"kafka$i"
-
-    val meta = for {
-      (colour, broker) <- consoleColours.zipWithIndex
-      port             <- Port.fromInt(9091 + broker)
-    } yield (port, broker + 1, kafkaName(broker + 1), colour)
-
-    val quorum =
-      meta
-        .map { case (port, brokerId, name, _) => s"$brokerId@$name:$controllerPort" }
-        .mkString(",")
-
-    val dnsMappings =
-      List.empty // (1 to consoleColours.length).map(i => kafkaName(i) -> kafkaName(i)).toList
-
-    val frees: Seq[Free[ManagerRequest, ContainerId]] = meta.map {
-      case (port, brokerId, name, logger) =>
-        val startCmd: StartRequest = startKafkaOnPort(port, brokerId, quorum, name, dnsMappings)
-        println(s"startCmd = $startCmd")
-        for {
-          containerId <- Free.liftF(startCmd)
-          _           <- Free.liftF(
-                           LoggingRequest(containerId, logger)
-                         )
-        } yield containerId
-    }
-    frees.tail.foldLeft(frees.head.map(List(_))) { case (x, y) =>
-      x.flatMap(ids => y.map(x => ids :+ x))
-    }
-  }
-
-  def startKafkaOnPort(
-      hostPort:    Port,
-      brokerId:    Int,
-      quorum:      String,
-      name:        String,
-      dnsMappings: DnsMapping[String],
-  ): StartRequest = {
-    val outsidePort = hostPort.value + 20
-    val outside     = s"OUTSIDE://localhost:$outsidePort"
-    val plaintext   = s"PLAINTEXT://${name}:$hostPort"
-    StartRequest(
-      ImageName("docker.io/bitnami/kafka:3.5"),
-      Command("/opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh"),
-      List(
-        "BITNAMI_DEBUG=true",
-        "ALLOW_PLAINTEXT_LISTENER=yes",
-        s"KAFKA_CFG_ADVERTISED_LISTENERS=$plaintext,$outside",
-        s"KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=OUTSIDE:PLAINTEXT,PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT",
-        s"KAFKA_CFG_LISTENERS=$plaintext,CONTROLLER://:$controllerPort,OUTSIDE://:$outsidePort",
-        s"KAFKA_KRAFT_CLUSTER_ID=$clusterId",
-        s"BROKER_ID=$brokerId",
-        s"KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=$quorum",
-        s"KAFKA_CFG_NODE_ID=$brokerId",
-      ),
-      List(hostPort.value -> hostPort.value, outsidePort -> outsidePort),
-      dnsMappings,
-      Some(name),
-      Some(networkName),
-    )
-  }
 
   private val sendMessages: IO[Unit] = {
     val bootstrapServer                                        = s"localhost:${kafkaPort.value + 20}"
