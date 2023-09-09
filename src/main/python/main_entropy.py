@@ -57,7 +57,7 @@ def ignoring_common(word_freq: dict, limit: int):
 
 
 if __name__ == "__main__":
-    pairs = information(sys.argv[1], sys.argv[2])
+    pairs = information(sys.argv[1], sys.argv[3])
     with open(sys.argv[2], "w") as file:
         for line, score in pairs:
             file.write(f"=== {score} ===\n")
