@@ -65,10 +65,10 @@ def is_within(word: str, ignore_words: [str]) -> bool:
     return False
 
 
-def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [str]):
-    first_logs = read_file(first_file)
+def sequences_of(first_file: str, second_file: str, words_file, ignore_words: [str], parser=lambda x: LogLine(x)):
+    first_logs = read_file(first_file, parser)
     first_docs = list(map(clean, first_logs))
-    second_logs = read_file(second_file)
+    second_logs = read_file(second_file, parser)
     second_docs = list(map(clean, second_logs))
 
     ignore_words = ignore_words + high_entropy_words(first_docs + second_docs, words_file)
