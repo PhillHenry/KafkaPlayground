@@ -27,6 +27,29 @@ class LogLine:
         return self
 
 
+class ClientLogLine:
+    def __init__(self, line: str):
+        elements = line.split(" ")
+        self.machine = ""
+        self.timestamp_str = (elements[0] + " " + elements[1])
+        self.timestamp = datetime.strptime(self.timestamp_str, DATETIME_FORMAT)
+        self.log_level = elements[3]
+        self.payload = elements[5:]
+        self.payload_str = " ".join(self.payload)
+        matches = re.fullmatch("^\\[([a-zA-Z0-9\ \-=_]+)\\].*", self.payload_str.strip())
+        try:
+            self.thread = matches.group(1)
+        except:
+            self.thread = "None"
+
+    def __str__(self):
+        return f"{self.machine} {self.timestamp_str} {self.log_level} {self.payload}"
+
+    def set_bin(self, bin: int):
+        self.bin = bin
+        return self
+
+
 def parse_logs_per_host(filename: str) -> dict:
     machine_to_logs = {}
     log_lines = read_file(filename)
@@ -44,13 +67,13 @@ def read_plain_file(filename) -> [str]:
     return lines
 
 
-def read_file(filename) -> [LogLine]:
+def read_file(filename: str, parser=lambda x: LogLine(x)) -> [LogLine]:
     log_lines = []
     failures = 0
     with open(filename, 'r') as f:
         for line in f:
             try:
-                log = LogLine(line)
+                log = parser(line)
                 log_lines.append(log)
             except Exception:
                 print(f"Could not parse line:\n{line}")

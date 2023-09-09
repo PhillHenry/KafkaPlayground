@@ -1,6 +1,6 @@
 import sys
 
-from kafka_log_parser import read_file, read_plain_file
+from kafka_log_parser import read_file, read_plain_file, ClientLogLine
 from rendering import human_readable
 from text_utils import entropy_of, frequencies, average_entropy_of, clean, \
     word_shingle_probabilities_from, normalize, sorted_word_average_entropy
@@ -11,7 +11,7 @@ WORD_SHINGLES = {3, 4, 5}
 
 
 def information(filename: str, words_file: str):
-    log_lines = read_file(filename)
+    log_lines = read_file(filename, lambda x: ClientLogLine(x))
     docs = list(map(clean, log_lines))
 
     print_entropy_of_entire_doc(docs, log_lines)
@@ -57,7 +57,7 @@ def ignoring_common(word_freq: dict, limit: int):
 
 
 if __name__ == "__main__":
-    pairs = information(sys.argv[1], sys.argv[3])
+    pairs = information(sys.argv[1], sys.argv[2])
     with open(sys.argv[2], "w") as file:
         for line, score in pairs:
             file.write(f"=== {score} ===\n")
