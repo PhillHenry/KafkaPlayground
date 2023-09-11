@@ -10,11 +10,26 @@ import fs2.kafka.{AutoOffsetReset, CommittableConsumerRecord, ConsumerSettings, 
 import uk.co.odinconsultants.dreadnought.Flow.race
 import uk.co.odinconsultants.dreadnought.docker.*
 import uk.co.odinconsultants.dreadnought.docker.Algebra.toInterpret
-import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{client, createNetwork, interpret, interpreter, removeNetwork}
-import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{consume, createCustomTopic, produce, produceMessages}
+import uk.co.odinconsultants.dreadnought.docker.CatsDocker.{
+  client,
+  createNetwork,
+  interpret,
+  interpreter,
+  removeNetwork,
+}
+import uk.co.odinconsultants.dreadnought.docker.KafkaAntics.{
+  consume,
+  createCustomTopic,
+  produce,
+  produceMessages,
+}
 import uk.co.odinconsultants.dreadnought.docker.Logging.{ioPrintln, verboseWaitFor}
 import uk.co.odinconsultants.dreadnought.docker.PopularContainers.startKafkaOnPort
-import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{startSlave, startSparkCluster, waitForMaster}
+import uk.co.odinconsultants.dreadnought.docker.SparkStructuredStreamingMain.{
+  startSlave,
+  startSparkCluster,
+  waitForMaster,
+}
 import uk.co.odinconsultants.dreadnought.docker.ZKKafkaMain.{kafkaEcosystem, startKafkaCluster}
 import uk.co.odinconsultants.dreadnought.docker.ContainerId
 import fs2.kafka.{ConsumerSettings, ProducerRecords, ProducerSettings, *}
@@ -35,11 +50,9 @@ import org.apache.kafka.clients.admin.AdminClientConfig
 
 object KafkaDemoMain extends IOApp.Simple {
 
-  val TOPIC_NAME     = "test_topic"
-  val kafkaPort      = port"9091"
-
-  val networkName    = "my_network"
-
+  val TOPIC_NAME  = "test_topic"
+  val kafkaPort   = port"9091"
+  val networkName = "my_network"
 
   /** TODO
     * Pull images
@@ -58,7 +71,7 @@ object KafkaDemoMain extends IOApp.Simple {
                       ioPrintln(Some(s"${Console.GREEN}kafka2: ")),
                       ioPrintln(Some(s"${Console.YELLOW}kafka3: ")),
                     )
-    containers   <-
+    containerIds <-
       interpret(
         client,
         KafkaRaft.startKafkas(loggers, networkName),
@@ -75,10 +88,9 @@ object KafkaDemoMain extends IOApp.Simple {
     _            <- messageLatch.get.timeout(20.seconds)
     _            <- IO.println("About to shut down...")
     _            <- race(toInterpret(client))(
-                      containers.map(StopRequest.apply)
+                      containerIds.map(StopRequest.apply)
                     )
   } yield println(s"Started and stopped ${loggers.length} kafka brokers")
-
 
   private val sendMessages: IO[Unit] = {
     val bootstrapServer                                        = s"localhost:${kafkaPort.value + 20}"
