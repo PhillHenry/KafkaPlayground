@@ -1,6 +1,6 @@
 import sys
 
-from kafka_log_parser import read_file, read_plain_file, ClientLogLine
+from kafka_log_parser import read_file, read_plain_file, ClientLogLine, LogLine
 from rendering import human_readable
 from text_utils import entropy_of, frequencies, average_entropy_of, clean, \
     word_shingle_probabilities_from, normalize, sorted_word_average_entropy
@@ -11,7 +11,7 @@ WORD_SHINGLES = {3, 4, 5}
 
 
 def top_word_to_entropy_tuples(filename: str, english: [str]) -> []:
-    log_lines = read_file(filename, lambda x: ClientLogLine(x))
+    log_lines = read_file(filename, lambda x: LogLine(x))
     docs = list(map(clean, log_lines))
 
     print_entropy_of_entire_doc(docs, log_lines)
@@ -38,7 +38,9 @@ def print_entropy_of_entire_doc(docs, log_lines):
 
 def print_sample(entropies, log_lines):
     pairs = sorted(list(zip(log_lines, entropies)), key=lambda x: x[1])
-    for word, score in pairs[-10:]:
+    score_to_words = {s: w for w, s in pairs}  # unique entropy values
+    pairs = sorted([[w, s] for s, w in score_to_words.items()], key=lambda x: x[1])
+    for word, score in pairs[-20:]:
         print(f"=== {score} ===")
         print(f"{human_readable(word)}")
     return pairs
@@ -62,4 +64,4 @@ if __name__ == "__main__":
     with open(sys.argv[2], "w") as file:
         for line, score in pairs:
             file.write(f"=== {score} ===\n")
-            file.write(human_readable(line))
+            file.write(line)
